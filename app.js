@@ -22,7 +22,7 @@ if (NODE_ENV === 'development') {
   console.log('🧪 테스트용 스케줄러가 1분마다 실행됩니다.');
 }
 
-const MONGODB_URI_PROD = process.env.MONGODB_URI_PROD;
+const MONGODB_URI_PROD = process.env.MONGODB_URI_PROD || 'mongodb+srv://Rancho:yVwzcI9b8q9gEKES@nexviacrmproject.1muago.mongodb.net/nexviacrmproject?retryWrites=true&w=majority&appName=nexviacrmproject';
 const app = express();
 
 // 프록시(Cloudflare/Nginx) 뒤에 있을 때 클라이언트 IP/프로토콜 신뢰
@@ -367,6 +367,7 @@ const runMigrations = async () => {
 };
 
 // MongoDB 연결
+console.log('🔍 MongoDB 연결 문자열:', MONGODB_URI_PROD ? '설정됨' : '설정되지 않음');
 mongoose.connect(MONGODB_URI_PROD, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
