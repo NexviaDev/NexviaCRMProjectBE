@@ -22,7 +22,14 @@ if (NODE_ENV === 'development') {
   console.log('🧪 테스트용 스케줄러가 1분마다 실행됩니다.');
 }
 
-const MONGODB_URI_PROD = process.env.MONGODB_URI_PROD || 'mongodb+srv://Rancho:yVwzcI9b8q9gEKES@nexviacrmproject.1muago.mongodb.net/nexviacrmproject?retryWrites=true&w=majority&appName=nexviacrmproject';
+// MongoDB 연결 문자열 구성
+const MONGODB_USER = process.env.MONGODB_USER || 'Rancho';
+const MONGODB_PASS = process.env.MONGODB_PASS || 'yVwzcI9b8q9gEKES';
+const MONGODB_CLUSTER = process.env.MONGODB_CLUSTER || 'nexviacrmproject.1muago.mongodb.net';
+const MONGODB_DB = process.env.MONGODB_DB || 'nexviacrmproject';
+
+const MONGODB_URI_PROD = process.env.MONGODB_URI_PROD || 
+    `mongodb+srv://${MONGODB_USER}:${MONGODB_PASS}@${MONGODB_CLUSTER}/${MONGODB_DB}?retryWrites=true&w=majority&appName=nexviacrmproject`;
 const app = express();
 
 // 프록시(Cloudflare/Nginx) 뒤에 있을 때 클라이언트 IP/프로토콜 신뢰
@@ -368,11 +375,18 @@ const runMigrations = async () => {
 
 // MongoDB 연결
 console.log('🔍 MongoDB 연결 문자열:', MONGODB_URI_PROD ? '설정됨' : '설정되지 않음');
+console.log('🔍 MongoDB 데이터베이스:', MONGODB_DB);
+console.log('🔍 MongoDB 클러스터:', MONGODB_CLUSTER);
+
 mongoose.connect(MONGODB_URI_PROD, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
-    serverSelectionTimeoutMS: 30000, // 30초 타임아웃
-    socketTimeoutMS: 45000, // 45초 소켓 타임아웃
+    serverSelectionTimeoutMS: 5000, // 5초로 단축
+    socketTimeoutMS: 10000, // 10초로 단축
+    connectTimeoutMS: 10000, // 연결 타임아웃 추가
+    maxPoolSize: 10, // 최대 연결 풀 크기
+    minPoolSize: 1, // 최소 연결 풀 크기
+    maxIdleTimeMS: 30000, // 유휴 연결 타임아웃
     bufferMaxEntries: 0, // 버퍼링 비활성화
     bufferCommands: false, // 명령 버퍼링 비활성화
 })
@@ -389,16 +403,62 @@ mongoose.connect(MONGODB_URI_PROD, {
 
 // MongoDB 연결 상태 확인 미들웨어
 app.use((req, res, next) => {
-    if (mongoose.connection.readyState !== 1) {
-        console.error('⚠️ MongoDB 연결 상태:', mongoose.connection.readyState);
-        console.error('⚠️ 연결 상태 설명:', ['disconnected', 'connected', 'connecting', 'disconnecting'][mongoose.connection.readyState]);
+    const dbState = mongoose.connection.readyState;
+    const dbStates = ['disconnected', 'connected', 'connecting', 'disconnecting'];
+    
+    console.log(`🔍 DB 상태 체크: ${dbStates[dbState]} (${dbState})`);
+    
+    if (dbState !== 1) {
+        console.error('⚠️ MongoDB 연결 상태:', dbState);
+        console.error('⚠️ 연결 상태 설명:', dbStates[dbState]);
+        console.error('⚠️ 연결 호스트:', mongoose.connection.host);
+        console.error('⚠️ 연결 포트:', mongoose.connection.port);
+        
         return res.status(503).json({ 
             status: 'fail', 
             message: '데이터베이스 연결이 불안정합니다. 잠시 후 다시 시도해주세요.',
-            dbStatus: mongoose.connection.readyState
+            dbStatus: dbState,
+            dbStateName: dbStates[dbState]
         });
     }
     next();
+});
+
+// MongoDB 연결 테스트 엔드포인트
+app.get('/api/test-db', async (req, res) => {
+    try {
+        const dbState = mongoose.connection.readyState;
+        const dbStates = ['disconnected', 'connected', 'connecting', 'disconnecting'];
+        
+        // 간단한 데이터베이스 쿼리 테스트
+        const User = require('./models/user.model');
+        const userCount = await User.countDocuments({});
+        
+        res.json({
+            status: 'success',
+            dbConnection: {
+                state: dbState,
+                stateName: dbStates[dbState],
+                host: mongoose.connection.host,
+                port: mongoose.connection.port,
+                name: mongoose.connection.name
+            },
+            testQuery: {
+                userCount: userCount,
+                success: true
+            },
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: 'error',
+            message: error.message,
+            dbConnection: {
+                state: mongoose.connection.readyState,
+                stateName: ['disconnected', 'connected', 'connecting', 'disconnecting'][mongoose.connection.readyState]
+            }
+        });
+    }
 });
 
 // 정기구독 스케줄러 연결
