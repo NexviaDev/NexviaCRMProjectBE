@@ -126,9 +126,6 @@ app.use((req, res, next) => {
     next();
 });
 
-app.use("/api", indexRouter);
-
-
 // 정적 파일 제공
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -401,12 +398,13 @@ mongoose.connect(MONGODB_URI_PROD, {
 
 // PayPal 결제 주문 생성
 
-// MongoDB 연결 상태 확인 미들웨어
-app.use((req, res, next) => {
+// API 라우트 설정
+app.use("/api", (req, res, next) => {
+    // MongoDB 연결 상태 확인 (API 요청에만 적용)
     const dbState = mongoose.connection.readyState;
     const dbStates = ['disconnected', 'connected', 'connecting', 'disconnecting'];
     
-    console.log(`🔍 DB 상태 체크: ${dbStates[dbState]} (${dbState})`);
+    console.log(`🔍 API 요청 - DB 상태 체크: ${dbStates[dbState]} (${dbState})`);
     
     if (dbState !== 1) {
         console.error('⚠️ MongoDB 연결 상태:', dbState);
@@ -422,7 +420,7 @@ app.use((req, res, next) => {
         });
     }
     next();
-});
+}, indexRouter);
 
 // 기본 라우트 설정
 app.get('/', (req, res) => {
