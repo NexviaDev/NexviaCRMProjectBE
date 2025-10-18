@@ -424,6 +424,40 @@ app.use((req, res, next) => {
     next();
 });
 
+// 기본 라우트 설정
+app.get('/', (req, res) => {
+    res.json({
+        status: 'success',
+        message: 'Nexvia CRM Backend API Server',
+        version: '1.0.0',
+        timestamp: new Date().toISOString(),
+        endpoints: {
+            health: '/api/health',
+            testDb: '/api/test-db',
+            users: '/api/user',
+            auth: '/api/auth'
+        }
+    });
+});
+
+// 헬스 체크 엔드포인트
+app.get('/api/health', (req, res) => {
+    const dbState = mongoose.connection.readyState;
+    const dbStates = ['disconnected', 'connected', 'connecting', 'disconnecting'];
+    
+    res.json({
+        status: 'success',
+        server: 'running',
+        database: {
+            state: dbState,
+            stateName: dbStates[dbState],
+            connected: dbState === 1
+        },
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime()
+    });
+});
+
 // MongoDB 연결 테스트 엔드포인트
 app.get('/api/test-db', async (req, res) => {
     try {
