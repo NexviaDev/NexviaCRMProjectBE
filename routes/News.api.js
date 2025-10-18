@@ -7,7 +7,7 @@ const {
   updateNews,
   deleteNews,
   searchNews
-} = require('../controllers/News.controller');
+} = require('../controllers/News.Controller');
 
 // 뉴스 생성
 router.post('/', createNews);
