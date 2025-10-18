@@ -367,13 +367,38 @@ const runMigrations = async () => {
 };
 
 // MongoDB 연결
-mongoose.connect(MONGODB_URI_PROD)
+mongoose.connect(MONGODB_URI_PROD, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+    serverSelectionTimeoutMS: 30000, // 30초 타임아웃
+    socketTimeoutMS: 45000, // 45초 소켓 타임아웃
+    bufferMaxEntries: 0, // 버퍼링 비활성화
+    bufferCommands: false, // 명령 버퍼링 비활성화
+})
     .then(() => { 
-        console.log("Mongoose Connected");
+        console.log("✅ MongoDB Connected Successfully");
+        console.log("📊 Database:", mongoose.connection.name);
     })
-    .catch((err) => { console.log("DB connected fail", err) });
+    .catch((err) => { 
+        console.error("❌ MongoDB Connection Failed:", err.message);
+        console.error("🔍 Connection String:", MONGODB_URI_PROD ? "설정됨" : "설정되지 않음");
+    });
 
 // PayPal 결제 주문 생성
+
+// MongoDB 연결 상태 확인 미들웨어
+app.use((req, res, next) => {
+    if (mongoose.connection.readyState !== 1) {
+        console.error('⚠️ MongoDB 연결 상태:', mongoose.connection.readyState);
+        console.error('⚠️ 연결 상태 설명:', ['disconnected', 'connected', 'connecting', 'disconnecting'][mongoose.connection.readyState]);
+        return res.status(503).json({ 
+            status: 'fail', 
+            message: '데이터베이스 연결이 불안정합니다. 잠시 후 다시 시도해주세요.',
+            dbStatus: mongoose.connection.readyState
+        });
+    }
+    next();
+});
 
 // 정기구독 스케줄러 연결
 const subscriptionScheduler = require('./schedulers/subscriptionScheduler');

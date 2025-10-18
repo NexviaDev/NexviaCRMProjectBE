@@ -294,6 +294,17 @@ userController.googleLogin = async (req, res) => {
         console.log('🔍 Google Login Request Body:', req.body);
         console.log('🔍 Google Login Headers:', req.headers);
         
+        // MongoDB 연결 상태 확인
+        const mongoose = require('mongoose');
+        if (mongoose.connection.readyState !== 1) {
+            console.error('❌ MongoDB 연결 실패:', mongoose.connection.readyState);
+            return res.status(503).json({ 
+                status: 'fail', 
+                message: '데이터베이스 연결이 불안정합니다. 잠시 후 다시 시도해주세요.',
+                dbStatus: mongoose.connection.readyState
+            });
+        }
+        
         const { googleId, email, name, nickname, picture } = req.body;
 
         if (!googleId || !email) {
