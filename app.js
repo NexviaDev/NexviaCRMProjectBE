@@ -126,6 +126,40 @@ app.use((req, res, next) => {
     next();
 });
 
+// 기본 라우트 설정 (가장 먼저 정의)
+app.get('/', (req, res) => {
+    res.json({
+        status: 'success',
+        message: 'Nexvia CRM Backend API Server',
+        version: '1.0.0',
+        timestamp: new Date().toISOString(),
+        endpoints: {
+            health: '/api/health',
+            testDb: '/api/test-db',
+            users: '/api/user',
+            auth: '/api/auth'
+        }
+    });
+});
+
+// 헬스 체크 엔드포인트
+app.get('/api/health', (req, res) => {
+    const dbState = mongoose.connection.readyState;
+    const dbStates = ['disconnected', 'connected', 'connecting', 'disconnecting'];
+    
+    res.json({
+        status: 'success',
+        server: 'running',
+        database: {
+            state: dbState,
+            stateName: dbStates[dbState],
+            connected: dbState === 1
+        },
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime()
+    });
+});
+
 // 정적 파일 제공
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -422,40 +456,6 @@ app.use("/api", (req, res, next) => {
     next();
 }, indexRouter);
 
-// 기본 라우트 설정
-app.get('/', (req, res) => {
-    res.json({
-        status: 'success',
-        message: 'Nexvia CRM Backend API Server',
-        version: '1.0.0',
-        timestamp: new Date().toISOString(),
-        endpoints: {
-            health: '/api/health',
-            testDb: '/api/test-db',
-            users: '/api/user',
-            auth: '/api/auth'
-        }
-    });
-});
-
-// 헬스 체크 엔드포인트
-app.get('/api/health', (req, res) => {
-    const dbState = mongoose.connection.readyState;
-    const dbStates = ['disconnected', 'connected', 'connecting', 'disconnecting'];
-    
-    res.json({
-        status: 'success',
-        server: 'running',
-        database: {
-            state: dbState,
-            stateName: dbStates[dbState],
-            connected: dbState === 1
-        },
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime()
-    });
-});
-
 // MongoDB 연결 테스트 엔드포인트
 app.get('/api/test-db', async (req, res) => {
     try {
@@ -499,9 +499,21 @@ const subscriptionScheduler = require('./schedulers/subscriptionScheduler');
 // 서버 시작 후 스케줄러 시작
 app.listen(PORT, () => {
   console.log(`🚀 서버가 포트 ${PORT}에서 실행 중입니다.`);
+  console.log(`🌐 서버 URL: http://localhost:${PORT}`);
+  console.log(`📊 MongoDB 상태: ${mongoose.connection.readyState}`);
+  console.log(`🔗 등록된 라우트:`);
+  console.log(`   - GET  /`);
+  console.log(`   - GET  /api/health`);
+  console.log(`   - GET  /api/test-db`);
+  console.log(`   - POST /api/user/*`);
   
   // 정기구독 스케줄러 시작
-  subscriptionScheduler.start();
+  try {
+    subscriptionScheduler.start();
+    console.log(`⏰ 스케줄러 시작됨`);
+  } catch (error) {
+    console.error(`❌ 스케줄러 시작 실패:`, error.message);
+  }
 });
 
 
