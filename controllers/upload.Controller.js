@@ -33,9 +33,9 @@ fileController.uploadFile = async (req, res) => {
 // Google Drive에 파일을 업로드하는 비동기 함수
 const uploadToGoogleDrive = async (filePath, fileName) => {
     const auth = new google.auth.OAuth2(
-        process.env.CLIENT_ID,
-        process.env.CLIENT_SECRET,
-        process.env.REDIRECT_URI
+        process.env.GOOGLE_CLIENT_ID,
+        process.env.GOOGLE_CLIENT_SECRET,
+        process.env.GOOGLE_REDIRECT_URI
     );
     
     auth.setCredentials({

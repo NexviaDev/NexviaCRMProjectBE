@@ -437,8 +437,8 @@ userController.googleOAuth = async (req, res) => {
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
             body: new URLSearchParams({
-                client_id: process.env.GOOGLE_CLIENT_ID || '568892459786-hc8i0h3eg5kvq8uo5998aot871n284cv.apps.googleusercontent.com',
-                client_secret: process.env.GOOGLE_CLIENT_SECRET || 'GOCSPX-YourClientSecret',
+                client_id: process.env.GOOGLE_CLIENT_ID,
+                client_secret: process.env.GOOGLE_CLIENT_SECRET,
                 code: code,
                 grant_type: 'authorization_code',
                 redirect_uri: `${process.env.FRONTEND_URL || 'http://localhost:3000'}`
@@ -446,7 +446,9 @@ userController.googleOAuth = async (req, res) => {
         });
 
         if (!tokenResponse.ok) {
-            throw new Error('Google OAuth 토큰 교환 실패');
+            const errorData = await tokenResponse.json();
+            console.error('Google OAuth 토큰 교환 실패:', errorData);
+            throw new Error(`Google OAuth 토큰 교환 실패: ${errorData.error_description || errorData.error}`);
         }
 
         const tokenData = await tokenResponse.json();

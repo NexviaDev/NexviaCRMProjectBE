@@ -37,9 +37,50 @@ app.use(cors({
   origin: (origin, callback) => {
     // 서버-사이드 호출(origin 없음) 또는 명시 오리진 허용
     if (!origin || origin === CORS_ORIGIN) return callback(null, true);
+    
+    // 개발 환경에서 localhost 허용
+    if (NODE_ENV === 'development') {
+      const devOrigins = [
+        'http://localhost:3000',
+        'http://127.0.0.1:3000',
+        'http://localhost:3001',
+        'http://127.0.0.1:3001'
+      ];
+      if (devOrigins.includes(origin)) return callback(null, true);
+    }
+    
+    // 프로덕션 환경에서 nexvia2.co.kr 도메인 허용
+    if (NODE_ENV === 'production') {
+      const prodOrigins = [
+        'https://app.nexvia2.co.kr',
+        'https://www.nexvia2.co.kr',
+        'https://nexvia2.co.kr',
+        'https://api.nexvia2.co.kr',
+        'https://admin.nexvia2.co.kr',
+        'https://m.nexvia2.co.kr',
+        'https://subtle-sopapillas-cd51dc.netlify.app',
+        'https://rancho-crm-project-05d4c046d65b.herokuapp.com'
+      ];
+      if (prodOrigins.includes(origin)) return callback(null, true);
+    }
+    
+    // Google OAuth 관련 도메인 허용
+    const allowedOrigins = [
+      CORS_ORIGIN,
+      'https://accounts.google.com',
+      'https://oauth2.googleapis.com',
+      'https://www.googleapis.com'
+    ];
+    
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    
     return callback(new Error('Not allowed by CORS'));
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
 // 보안 헤더 및 HSTS (프로덕션에서만 강제)

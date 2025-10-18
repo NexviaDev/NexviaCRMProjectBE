@@ -3,7 +3,7 @@ require('dotenv').config();
 
 class GeminiService {
     constructor() {
-        this.apiKey = process.env.GEMINI_API_KEY
+        this.apiKey = process.env.GEMINI_API_KEY || process.env.Gemini_API_Key;
         // 매뉴얼에 따른 올바른 엔드포인트 사용
         this.baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
         this.openAICompatUrl = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
@@ -19,6 +19,12 @@ class GeminiService {
         try {
             console.log('=== GEMINI API 호출 시작 ===');
             console.log('API URL:', this.baseUrl);
+            
+            // API 키 검증
+            if (!this.apiKey) {
+                throw new Error('Gemini API 키가 설정되지 않았습니다. 환경변수를 확인하세요.');
+            }
+            
             console.log('API Key:', this.apiKey.substring(0, 10) + '...');
             
             const requestBody = {
@@ -359,6 +365,71 @@ ${JSON.stringify(fullData, null, 2)}
 - 고객 만족도 향상 방안
 - 스트레스 관리 팁
 - 시스템 활용 개선점
+
+한국어로 전문적이고 실용적인 조언을 제공해주세요.
+`;
+
+        return await this.generateText(prompt, {
+            temperature: 0.6,
+            maxOutputTokens: 2000
+        });
+    }
+
+    /**
+     * 주간 브리핑 생성
+     * @param {Array} schedules - 일정 배열
+     * @param {string} userName - 사용자 이름
+     * @returns {Promise<string>} 생성된 브리핑
+     */
+    async generateWeeklyBriefing(schedules, userName) {
+        const prompt = `
+당신은 부동산 CRM 시스템의 AI 어시스턴트입니다.
+사용자 "${userName}"의 이번 주 일정을 분석하여 효율적인 업무 관리를 위한 주간 브리핑을 작성해주세요.
+
+일정 데이터:
+${JSON.stringify(schedules.map(s => ({
+    title: s.title,
+    date: s.date,
+    time: s.time,
+    type: s.type,
+    priority: s.priority,
+    status: s.status,
+    description: s.description,
+    publisher: s.publisher?.name,
+    customers: s.relatedCustomers?.map(c => c.name),
+    properties: s.relatedProperties?.map(p => p.title),
+    contracts: s.relatedContracts?.map(c => c.contractNumber)
+})), null, 2)}
+
+다음 형식으로 주간 브리핑을 작성해주세요:
+
+## 📅 이번 주 업무 브리핑
+
+### 📊 일정 개요
+- 총 일정 수: X건
+- 완료된 일정: X건
+- 진행 중인 일정: X건
+- 예정된 일정: X건
+
+### 🎯 주요 업무 포인트
+- 중요도가 높은 일정들
+- 긴급도가 높은 일정들
+- 고객 만남 일정들
+
+### ⏰ 시간 관리 조언
+- 효율적인 시간 배치 제안
+- 이동 시간 고려사항
+- 휴식 시간 권장사항
+
+### 💼 고객 관리 전략
+- 고객별 접근 방법
+- 만남 전 준비사항
+- 후속 관리 방안
+
+### 🔄 개선 제안사항
+- 일정 최적화 방안
+- 업무 효율성 향상 방법
+- 고객 만족도 향상 방안
 
 한국어로 전문적이고 실용적인 조언을 제공해주세요.
 `;
