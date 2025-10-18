@@ -291,13 +291,20 @@ userController.loginWithEmail = async (req, res) => {
 // 구글 OAuth 로그인
 userController.googleLogin = async (req, res) => {
     try {
+        console.log('🔍 Google Login Request Body:', req.body);
+        console.log('🔍 Google Login Headers:', req.headers);
+        
         const { googleId, email, name, nickname, picture } = req.body;
 
         if (!googleId || !email) {
+            console.log('❌ 필수 정보 누락:', { googleId, email });
             return res.status(400).json({ status: 'fail', message: '필수 정보가 누락되었습니다.' });
         }
 
+        console.log('✅ 필수 정보 확인 완료:', { googleId, email, name });
+
         // 기존 사용자 검색 (구글 ID 또는 이메일로)
+        console.log('🔍 사용자 검색 시작...');
         let user = await User.findOne({
             $or: [
                 { googleId: googleId },
@@ -305,7 +312,10 @@ userController.googleLogin = async (req, res) => {
             ]
         });
 
+        console.log('🔍 사용자 검색 완료:', user ? '기존 사용자 발견' : '새 사용자');
+
         // 탈퇴된 계정이 있는지 확인
+        console.log('🔍 탈퇴된 계정 검색 시작...');
         const deletedUser = await User.findOne({
             email: email,
             isDeleted: true
