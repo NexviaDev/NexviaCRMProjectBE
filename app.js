@@ -49,7 +49,7 @@ app.use(cors({
       if (devOrigins.includes(origin)) return callback(null, true);
     }
     
-    // 프로덕션 환경에서 nexvia2.co.kr 도메인 허용
+    // 프로덕션 환경에서 허용된 도메인들
     if (NODE_ENV === 'production') {
       const prodOrigins = [
         'https://app.nexvia2.co.kr',
@@ -59,6 +59,7 @@ app.use(cors({
         'https://admin.nexvia2.co.kr',
         'https://m.nexvia2.co.kr',
         'https://subtle-sopapillas-cd51dc.netlify.app',
+        'https://nexvia.netlify.app', // 새로운 프론트엔드 URL 추가
         'https://rancho-crm-project-05d4c046d65b.herokuapp.com'
       ];
       if (prodOrigins.includes(origin)) return callback(null, true);
