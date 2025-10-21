@@ -464,7 +464,7 @@ ${JSON.stringify(fullData, null, 2)}
 📋 일정 데이터:
 ${JSON.stringify(detailedSchedules, null, 2)}
 
-🎯 다음 형식으로 간결하고 실용적인 주간 브리핑을 작성해주세요 (최대 1500자):
+🎯 다음 형식으로 간결하고 실용적인 주간 브리핑을 작성해주세요 (정확히 1000자 이내로 작성해주세요):
 
 ## 📅 ${userName}님의 이번 주 맞춤 업무 브리핑
 
@@ -487,13 +487,13 @@ ${JSON.stringify(detailedSchedules, null, 2)}
 - 이번 주 목표와 예상 성과
 - 다음 주를 위한 준비사항
 
-각 조언은 구체적이고 실행 가능해야 하며, ${userName}님의 개인적 상황을 고려한 맞춤형 내용이어야 합니다.
+⚠️ 중요: 반드시 1000자 이내로 작성해주세요. 각 조언은 구체적이고 실행 가능해야 하며, ${userName}님의 개인적 상황을 고려한 맞춤형 내용이어야 합니다.
 한국어로 친근하면서도 전문적인 톤으로 작성해주세요.
 `;
 
         return await this.generateText(prompt, {
-            temperature: 0.8,
-            maxOutputTokens: 1500  // 금주 브리핑을 1500자로 제한
+            temperature: 0.8
+            // 토큰 제한 제거 - Gemini에게 직접 글자 수 제한 요청
         });
     }
 }

@@ -313,7 +313,7 @@ exports.generateDailyBriefing = async (req, res) => {
         }));
 
         const prompt = `
-당신은 부동산 전문가이자 개인 코치입니다. 사용자 "${user.name}"의 ${targetDate.toLocaleDateString('ko-KR')} 일정을 분석하여 간결하고 실용적인 오늘의 업무 브리핑을 작성해주세요 (최대 800자).
+당신은 부동산 전문가이자 개인 코치입니다. 사용자 "${user.name}"의 ${targetDate.toLocaleDateString('ko-KR')} 일정을 분석하여 간결하고 실용적인 오늘의 업무 브리핑을 작성해주세요 (정확히 800자 이내로 작성해주세요).
 
 📋 오늘의 일정 상세 데이터:
 ${JSON.stringify(detailedSchedules, null, 2)}
@@ -340,13 +340,13 @@ ${JSON.stringify(detailedSchedules, null, 2)}
 - 예상 성과와 달성 방안
 - 내일을 위한 준비사항
 
-각 조언은 구체적이고 실행 가능해야 하며, ${user.name}님의 개인적 상황을 고려한 맞춤형 내용이어야 합니다.
+⚠️ 중요: 반드시 800자 이내로 작성해주세요. 각 조언은 구체적이고 실행 가능해야 하며, ${user.name}님의 개인적 상황을 고려한 맞춤형 내용이어야 합니다.
 한국어로 친근하면서도 전문적인 톤으로 작성해주세요.
 `;
 
         const briefing = await geminiService.generateText(prompt, {
-            temperature: 0.8,
-            maxOutputTokens: 800  // 오늘 브리핑을 800자로 제한
+            temperature: 0.8
+            // 토큰 제한 제거 - Gemini에게 직접 글자 수 제한 요청
         });
 
         res.json({
