@@ -324,24 +324,55 @@ const runMigrations = async () => {
 };
 
 // MongoDB 연결
-mongoose.connect(MONGODB_URI_PROD)
-    .then(() => { 
-        console.log("Mongoose Connected");
-    })
-    .catch((err) => { console.log("DB connected fail", err) });
+const connectDB = async () => {
+    try {
+        console.log('🔄 MongoDB 연결 시도 중...');
+        console.log('🔍 연결 URI:', MONGODB_URI_PROD ? '설정됨' : '설정되지 않음');
+        
+        if (!MONGODB_URI_PROD) {
+            throw new Error('MONGODB_URI_PROD 환경변수가 설정되지 않았습니다.');
+        }
+        
+        await mongoose.connect(MONGODB_URI_PROD, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+            serverSelectionTimeoutMS: 30000, // 30초 타임아웃
+            connectTimeoutMS: 30000,
+            socketTimeoutMS: 30000
+        });
+        
+        console.log('✅ MongoDB 연결 성공!');
+        
+        // 마이그레이션 실행
+        await runMigrations();
+        
+        // 서버 시작
+        startServer();
+        
+    } catch (error) {
+        console.error('❌ MongoDB 연결 실패:', error.message);
+        console.error('❌ 전체 오류:', error);
+        process.exit(1); // 연결 실패 시 프로세스 종료
+    }
+};
+
+// 데이터베이스 연결 후 서버 시작
+connectDB();
 
 // PayPal 결제 주문 생성
 
 // 정기구독 스케줄러 연결
 const subscriptionScheduler = require('./schedulers/subscriptionScheduler');
 
-// 서버 시작 후 스케줄러 시작
-app.listen(PORT, () => {
-  console.log(`🚀 서버가 포트 ${PORT}에서 실행 중입니다.`);
-  
-  // 정기구독 스케줄러 시작
-  subscriptionScheduler.start();
-});
+// 서버 시작 함수
+const startServer = () => {
+  app.listen(PORT, () => {
+    console.log(`🚀 서버가 포트 ${PORT}에서 실행 중입니다.`);
+    
+    // 정기구독 스케줄러 시작
+    subscriptionScheduler.start();
+  });
+};
 
 
 

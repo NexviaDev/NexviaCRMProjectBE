@@ -26,6 +26,7 @@ const createNews = async (req, res) => {
       title,
       subtitle,
       link,
+      linkUrl: link, // 기존 데이터와의 호환성을 위해 linkUrl도 설정
       registrationDate: registrationDate ? new Date(registrationDate) : new Date()
     };
 
@@ -130,6 +131,7 @@ const updateNews = async (req, res) => {
         });
       }
       updateData.link = link;
+      updateData.linkUrl = link; // 기존 데이터와의 호환성을 위해 linkUrl도 설정
     }
     if (registrationDate) updateData.registrationDate = new Date(registrationDate);
 
