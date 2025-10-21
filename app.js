@@ -32,9 +32,26 @@ app.set('trust proxy', 1);
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
-// HTTPS 전용 CORS (크리덴셜 허용) - 임시로 모든 도메인 허용
+// HTTPS 전용 CORS (크리덴셜 허용)
+const allowedOrigins = [
+    'https://nexvia.netlify.app',
+    'https://app.nexvia2.co.kr',
+    'http://localhost:3000',
+    'http://localhost:3001'
+];
+
 app.use(cors({
-  origin: true, // 임시로 모든 도메인 허용
+  origin: function (origin, callback) {
+    // origin이 없는 경우 (모바일 앱 등) 허용
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log('CORS blocked origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
