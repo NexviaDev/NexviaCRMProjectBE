@@ -56,7 +56,7 @@ class GeminiService {
                             headers: {
                                 'Content-Type': 'application/json',
                             },
-                            timeout: 90000 // 90초 타임아웃
+                            timeout: 300000 // 5분 타임아웃 (더 여유있게)
                         }
                     );
 
@@ -217,7 +217,7 @@ ${JSON.stringify(fullData, null, 2)}
 
         return await this.generateText(prompt, {
             temperature: 0.7,
-            maxOutputTokens: 2000
+            maxOutputTokens: 3000
         });
     }
 

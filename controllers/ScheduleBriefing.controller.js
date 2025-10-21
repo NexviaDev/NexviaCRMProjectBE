@@ -322,7 +322,7 @@ ${JSON.stringify(schedules, null, 2)}
 
         const briefing = await geminiService.generateText(prompt, {
             temperature: 0.8,
-            maxOutputTokens: 1536
+            maxOutputTokens: 1500
         });
 
         res.json({
