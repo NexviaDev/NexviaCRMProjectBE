@@ -372,7 +372,7 @@ ${JSON.stringify(detailedSchedules, null, 2)}
 
         const briefing = await geminiService.generateText(prompt, {
             temperature: 0.8,
-            maxOutputTokens: 1500
+            maxOutputTokens: 2500  // 토큰 제한을 더 높임
         });
 
         res.json({
