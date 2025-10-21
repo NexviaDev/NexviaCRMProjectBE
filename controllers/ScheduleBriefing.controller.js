@@ -285,39 +285,89 @@ exports.generateDailyBriefing = async (req, res) => {
             });
         }
 
-        // 일일 브리핑용 프롬프트
+        // 일일 브리핑용 프롬프트 - 더 개인적이고 구체적으로
+        const detailedSchedules = schedules.map(s => ({
+            title: s.title,
+            date: s.date,
+            time: s.time,
+            type: s.type,
+            priority: s.priority,
+            status: s.status,
+            description: s.description,
+            location: s.location,
+            publisher: s.publisher?.name,
+            customers: s.relatedCustomers?.map(c => ({
+                name: c.name,
+                phone: c.phone,
+                email: c.email
+            })),
+            properties: s.relatedProperties?.map(p => ({
+                title: p.title,
+                address: p.address
+            })),
+            contracts: s.relatedContracts?.map(c => ({
+                contractNumber: c.contractNumber,
+                type: c.type,
+                status: c.status
+            }))
+        }));
+
         const prompt = `
-당신은 부동산 CRM 시스템의 AI 어시스턴트입니다.
-사용자 "${user.name}"의 ${targetDate.toLocaleDateString('ko-KR')} 일정을 분석하여 오늘의 업무 브리핑을 작성해주세요.
+당신은 부동산 전문가이자 개인 코치입니다. 사용자 "${user.name}"의 ${targetDate.toLocaleDateString('ko-KR')} 일정을 분석하여 매우 구체적이고 개인적인 오늘의 업무 브리핑을 작성해주세요.
 
-일정 데이터:
-${JSON.stringify(schedules, null, 2)}
+📋 오늘의 일정 상세 데이터:
+${JSON.stringify(detailedSchedules, null, 2)}
 
-다음 형식으로 브리핑을 작성해주세요:
+🎯 다음 형식으로 매우 상세하고 개인적인 일일 브리핑을 작성해주세요:
 
-## 📅 오늘의 업무 브리핑 (${targetDate.toLocaleDateString('ko-KR')})
+## 🌅 ${user.name}님의 ${targetDate.toLocaleDateString('ko-KR')} 맞춤 업무 브리핑
 
-### 🌅 오늘의 주요 업무
-- 시간순으로 정리된 주요 업무 목록
+### 🔍 오늘의 일정 심층 분석
+- 각 일정의 비즈니스 임팩트와 중요도 분석
+- 고객별 특성과 니즈 파악
+- 매물/계약의 전략적 가치 평가
+- 시간대별 업무 효율성 분석
 
-### ⏰ 시간별 일정 안내
-각 일정에 대해:
-- 시간과 장소
-- 준비사항
-- 주의점
+### 💡 ${user.name}님만을 위한 특별 조언
+- 오늘의 핵심 성공 포인트
+- 고객별 맞춤 접근법 (구체적인 대화 주제와 질문 제안)
+- 매물별 차별화된 마케팅 전략
+- 계약 성사율을 높이는 실전 팁
 
-### 👥 만나는 사람들
-- 고객/파트너 정보
-- 각 만남의 목적과 중요도
+### 🎯 고객별 맞춤 전략 (구체적 실행 방안)
+각 고객에 대해:
+- 고객의 심리 상태와 구매 의도 분석
+- 맞춤형 상담 접근법과 대화 스크립트
+- 구체적인 질문 리스트와 답변 전략
+- 거래 성사 가능성과 구체적 실행 계획
 
-### 💡 오늘의 성공 포인트
-- 효율적인 업무 진행을 위한 조언
-- 고객 만족도를 높이는 방법
+### 🏠 매물별 마케팅 전략 (실전 가이드)
+각 매물에 대해:
+- 매물의 강점과 약점 분석
+- 타겟 고객층과 맞춤 마케팅 포인트
+- 차별화 포인트와 어필 방법
+- 가격 전략과 협상 포인트
 
-### ⚠️ 주의사항
-- 특별히 주의해야 할 점들
+### ⚡ 실전 성공 팁 (즉시 적용 가능)
+- ${user.name}님의 업무 스타일에 맞는 효율성 개선안
+- 고객 만족도를 극대화하는 구체적 방법
+- 경쟁사 대비 우위 전략
+- 장기적 고객 관계 구축 방안
 
-한국어로 친근하고 전문적인 톤으로 작성해주세요.
+### 🚨 주의사항 및 리스크 관리
+- 각 일정에서 주의해야 할 구체적 점들
+- 잠재적 문제점과 대응 방안
+- 법적/윤리적 고려사항
+- 백업 플랜과 대안 제시
+
+### 📈 오늘의 성과 예측 및 목표
+- 오늘 목표 달성 가능성과 예상 수익
+- 성과 지표와 측정 방법
+- 내일을 위한 준비사항
+- 장기 목표 달성을 위한 오늘의 역할
+
+각 조언은 구체적이고 실행 가능해야 하며, ${user.name}님의 개인적 상황과 업무 환경을 고려한 맞춤형 내용이어야 합니다.
+한국어로 친근하면서도 전문적인 톤으로 작성해주세요.
 `;
 
         const briefing = await geminiService.generateText(prompt, {
