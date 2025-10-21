@@ -93,6 +93,16 @@ app.use((req, res, next) => {
     next();
 });
 
+// 루트 경로 설정 (404 오류 방지)
+app.get('/', (req, res) => {
+  res.json({
+    message: 'Nexvia CRM Backend API Server',
+    status: 'running',
+    version: '1.0.0',
+    timestamp: new Date().toISOString()
+  });
+});
+
 app.use("/api", indexRouter);
 
 
