@@ -1,4 +1,4 @@
-const axios = require('axios');
+ㅇconst axios = require('axios');
 require('dotenv').config();
 
 class GeminiService {
@@ -64,9 +64,22 @@ class GeminiService {
                     console.log('응답 데이터:', JSON.stringify(response.data, null, 2));
 
                     if (response.data && response.data.candidates && response.data.candidates[0]) {
-                        const parts = response.data.candidates[0].content?.parts || [];
+                        const candidate = response.data.candidates[0];
+                        const parts = candidate.content?.parts || [];
                         const result = parts.map(p => p.text || '').join('\n').trim();
-                        console.log('생성된 텍스트:', result.substring(0, 100) + '...');
+                        
+                        // 응답 완성도 확인
+                        const finishReason = candidate.finishReason;
+                        console.log('응답 완성 상태:', finishReason);
+                        console.log('생성된 텍스트 길이:', result.length);
+                        console.log('생성된 텍스트 미리보기:', result.substring(0, 200) + '...');
+                        
+                        // 응답이 중간에 끊어진 경우 재시도
+                        if (finishReason === 'MAX_TOKENS' && result.length < (options.maxOutputTokens || 1200) * 0.8) {
+                            console.warn('응답이 토큰 제한으로 인해 중단됨. 재시도합니다.');
+                            throw new Error('MAX_TOKENS_LIMIT');
+                        }
+                        
                         return result;
                     } else {
                         console.error('응답 형식 오류:', response.data);
@@ -436,24 +449,23 @@ ${JSON.stringify(fullData, null, 2)}
         }));
 
         const prompt = `
-당신은 부동산 전문가이자 개인 코치입니다. 사용자 "${userName}"의 이번 주 일정을 분석하여 매우 구체적이고 개인적인 조언을 제공해주세요.
+당신은 부동산 전문가이자 개인 코치입니다. 사용자 "${userName}"의 이번 주 일정을 분석하여 구체적이고 개인적인 조언을 제공해주세요.
 
-📋 일정 상세 데이터:
+📋 일정 데이터:
 ${JSON.stringify(detailedSchedules, null, 2)}
 
-🎯 다음 형식으로 매우 상세하고 개인적인 주간 브리핑을 작성해주세요:
+🎯 다음 형식으로 상세한 주간 브리핑을 작성해주세요:
 
 ## 📅 ${userName}님의 이번 주 맞춤 업무 브리핑
 
 ### 🔍 일정 심층 분석
-- 각 일정의 비즈니스 임팩트 분석
+- 각 일정의 비즈니스 임팩트와 중요도 분석
 - 고객별 특성과 니즈 파악
 - 매물/계약의 전략적 가치 평가
-- 시간대별 업무 효율성 분석
 
 ### 💡 개인 맞춤 조언
 - ${userName}님만을 위한 특별한 업무 전략
-- 고객별 맞춤 접근법 (구체적인 대화 주제 제안)
+- 고객별 맞춤 접근법과 구체적인 대화 주제
 - 매물별 차별화된 마케팅 전략
 - 계약 성사율을 높이는 실전 팁
 
