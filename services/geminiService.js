@@ -37,8 +37,8 @@ class GeminiService {
                 generationConfig: {
                     temperature: options.temperature ?? 0.7,
                     topK: options.topK ?? 32,
-                    topP: options.topP ?? 0.9,
-                    maxOutputTokens: options.maxOutputTokens ?? 1200,
+                    topP: options.topP ?? 0.9
+                    // maxOutputTokens 제거 - Gemini에게 직접 글자 수 제한 요청
                 }
             };
 
@@ -74,19 +74,13 @@ class GeminiService {
                         console.log('생성된 텍스트 길이:', result.length);
                         console.log('생성된 텍스트 미리보기:', result.substring(0, 200) + '...');
                         
-                        // 응답이 중간에 끊어진 경우 재시도
-                        if (finishReason === 'MAX_TOKENS' && result.length < (options.maxOutputTokens || 1200) * 0.7) {
-                            console.warn('응답이 토큰 제한으로 인해 중단됨. 재시도합니다.');
-                            throw new Error('MAX_TOKENS_LIMIT');
+                        // 응답이 정상적으로 생성되었으면 반환
+                        if (result.length > 0) {
+                            return result;
+                        } else {
+                            console.warn('응답이 비어있습니다. 재시도합니다.');
+                            throw new Error('EMPTY_RESPONSE');
                         }
-                        
-                        // 응답이 너무 짧은 경우도 재시도
-                        if (result.length < 500 && (options.maxOutputTokens || 1200) > 1000) {
-                            console.warn('응답이 너무 짧습니다. 재시도합니다.');
-                            throw new Error('RESPONSE_TOO_SHORT');
-                        }
-                        
-                        return result;
                     } else {
                         console.error('응답 형식 오류:', response.data);
                         throw new Error('GEMINI API 응답 형식이 올바르지 않습니다.');
@@ -94,13 +88,13 @@ class GeminiService {
                 } catch (err) {
                     lastError = err;
                     const isTimeout = err.code === 'ECONNABORTED' || /timeout/i.test(err.message);
-                    const isTokenLimit = err.message === 'MAX_TOKENS_LIMIT' || err.message === 'RESPONSE_TOO_SHORT';
+                    const isEmptyResponse = err.message === 'EMPTY_RESPONSE';
                     const status = err.response?.status;
-                    console.warn(`네이티브 호출 실패 (시도 ${attempt + 1}/${maxRetries + 1}) - status=${status || 'n/a'} timeout=${isTimeout} tokenLimit=${isTokenLimit}`);
+                    console.warn(`네이티브 호출 실패 (시도 ${attempt + 1}/${maxRetries + 1}) - status=${status || 'n/a'} timeout=${isTimeout} emptyResponse=${isEmptyResponse}`);
                     
-                    // 토큰 제한 오류인 경우 더 긴 대기 시간
+                    // 빈 응답인 경우 더 긴 대기 시간
                     if (attempt < maxRetries) {
-                        const backoffMs = isTokenLimit ? 2000 * Math.pow(2, attempt) : 500 * Math.pow(2, attempt);
+                        const backoffMs = isEmptyResponse ? 3000 * Math.pow(2, attempt) : 1000 * Math.pow(2, attempt);
                         console.log(`${backoffMs}ms 대기 후 재시도...`);
                         await new Promise(r => setTimeout(r, backoffMs));
                         continue;
