@@ -55,8 +55,8 @@ class GeminiService {
                         {
                             headers: {
                                 'Content-Type': 'application/json',
-                            },
-                            timeout: 300000 // 5분 타임아웃 (더 여유있게)
+                            }
+                            // 타임아웃 제거 - 시간 초과 없이 대기
                         }
                     );
 

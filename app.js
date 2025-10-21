@@ -86,12 +86,12 @@ if (NODE_ENV === 'production' && ENABLE_HTTPS_REDIRECT) {
   });
 }
 
-// 요청 타임아웃 설정 (2분)
-app.use((req, res, next) => {
-    req.setTimeout(120000); // 2분
-    res.setTimeout(120000); // 2분
-    next();
-});
+// 요청 타임아웃 설정 제거 - 브리핑 생성 시간 제한 없음
+// app.use((req, res, next) => {
+//     req.setTimeout(120000); // 2분
+//     res.setTimeout(120000); // 2분
+//     next();
+// });
 
 // 루트 경로 설정 (404 오류 방지)
 app.get('/', (req, res) => {
