@@ -18,6 +18,8 @@ class GeminiService {
     async generateText(prompt, options = {}) {
         try {
             console.log('=== GEMINI API 호출 시작 (최적화) ===');
+            console.log('API 키:', this.apiKey ? `${this.apiKey.substring(0, 10)}...` : '없음');
+            console.log('프롬프트:', prompt.substring(0, 100) + '...');
             
             // API 키 검증
             if (!this.apiKey) {
@@ -38,6 +40,8 @@ class GeminiService {
                     maxOutputTokens: 200 // 최대 200토큰으로 제한 (30초 이내 완료)
                 }
             };
+
+            console.log('요청 본문:', JSON.stringify(requestBody, null, 2));
 
             // 간단한 API 호출 (타임아웃 최적화)
             const response = await axios.post(
