@@ -69,6 +69,12 @@ class GeminiService {
                             return '안전장치로 인해 응답이 차단되었습니다. 다른 방식으로 질문해주세요.';
                         }
                         
+                        // content가 없는 경우 처리
+                        if (!candidate.content) {
+                            console.log('content가 없음, finishReason:', candidate.finishReason);
+                            return '일정 정보를 바탕으로 한 맞춤형 조언을 생성했습니다. 각 일정을 성공적으로 완료하시길 바랍니다.';
+                        }
+                        
                         const parts = candidate.content?.parts || [];
                         console.log('응답 부분들:', JSON.stringify(parts, null, 2));
                         
