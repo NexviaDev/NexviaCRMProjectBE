@@ -32,20 +32,19 @@ app.set('trust proxy', 1);
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
-// CORS 설정 - credentials와 wildcard origin 문제 해결
+// CORS 설정 - 브라우저 캐시 무시를 위한 강력한 설정
 app.use((req, res, next) => {
-  // 특정 origin에 대해서만 credentials 허용
-  const origin = req.headers.origin;
-  if (origin && (origin.includes('nexvia.netlify.app') || origin.includes('localhost'))) {
-    res.header('Access-Control-Allow-Origin', origin);
-    res.header('Access-Control-Allow-Credentials', 'true');
-  } else {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Credentials', 'false');
-  }
-  
+  // 모든 origin 허용 (브라우저 캐시 문제 해결)
+  res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control');
+  res.header('Access-Control-Allow-Credentials', 'false'); // credentials 비활성화로 호환성 향상
+  
+  // 캐시 완전 방지
+  res.header('Cache-Control', 'no-cache, no-store, must-revalidate, private');
+  res.header('Pragma', 'no-cache');
+  res.header('Expires', '0');
+  res.header('Last-Modified', new Date().toUTCString());
   
   // OPTIONS 요청에 대한 즉시 응답
   if (req.method === 'OPTIONS') {
