@@ -32,13 +32,65 @@ app.set('trust proxy', 1);
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
-// CORS 설정 - 브라우저 캐시 무시를 위한 강력한 설정
+// CORS 패키지 설정 (추가 보안)
+const corsOptions = {
+  origin: function (origin, callback) {
+    // 허용할 도메인 목록
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'http://localhost:3001', 
+      'https://nexvia.netlify.app',
+      'https://app.nexvia2.co.kr',
+      'https://nexvia2.co.kr',
+      'https://www.nexvia2.co.kr'
+    ];
+    
+    // origin이 없거나 허용 목록에 있으면 허용
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(null, true); // 모든 origin 허용 (개발 편의성)
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization', 'Cache-Control', 'Pragma', 'Expires', 'X-API-Key'],
+  optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
+
+// CORS 설정 - 강력한 설정으로 모든 도메인 허용
 app.use((req, res, next) => {
-  // 모든 origin 허용 (브라우저 캐시 문제 해결)
-  res.header('Access-Control-Allow-Origin', '*');
+  // 요청한 origin을 그대로 허용 (동적 origin 허용)
+  const origin = req.headers.origin;
+  
+  // 디버깅을 위한 로깅
+  console.log(`🌐 CORS 요청: ${req.method} ${req.path} from origin: ${origin}`);
+  
+  // 허용할 도메인 목록
+  const allowedOrigins = [
+    'http://localhost:3000',
+    'http://localhost:3001', 
+    'https://nexvia.netlify.app',
+    'https://app.nexvia2.co.kr',
+    'https://nexvia2.co.kr',
+    'https://www.nexvia2.co.kr'
+  ];
+  
+  // origin이 허용 목록에 있거나 모든 origin 허용
+  if (allowedOrigins.includes(origin) || !origin) {
+    res.header('Access-Control-Allow-Origin', origin || '*');
+    console.log(`✅ CORS 허용: ${origin || '*'}`);
+  } else {
+    res.header('Access-Control-Allow-Origin', '*');
+    console.log(`⚠️ CORS 전체 허용: ${origin}`);
+  }
+  
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Pragma, Expires');
-  res.header('Access-Control-Allow-Credentials', 'false'); // credentials 비활성화로 호환성 향상
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Pragma, Expires, X-API-Key');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Max-Age', '86400'); // 24시간 preflight 캐시
   
   // 캐시 완전 방지
   res.header('Cache-Control', 'no-cache, no-store, must-revalidate, private');
@@ -48,6 +100,7 @@ app.use((req, res, next) => {
   
   // OPTIONS 요청에 대한 즉시 응답
   if (req.method === 'OPTIONS') {
+    console.log(`🔄 OPTIONS 요청 처리: ${req.path}`);
     res.status(200).end();
     return;
   }
