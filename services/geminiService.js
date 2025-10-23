@@ -52,7 +52,7 @@ class GeminiService {
                 `${this.baseUrl}?key=${this.apiKey}`,
                 requestBody,
                 {
-                    timeout: 25000, // 25초 타임아웃
+                    timeout: 0, // 타임아웃 완전 제거
                     headers: {
                         'Content-Type': 'application/json',
                     }

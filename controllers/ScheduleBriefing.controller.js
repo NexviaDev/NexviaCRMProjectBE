@@ -105,11 +105,11 @@ async function generateQuickBriefing(schedules, userName) {
 
         const briefingText = await geminiService.generateText(prompt);
         
-        // 응답이 너무 길면 자르기 (단어 단위로 자르기)
-        if (briefingText.length > 300) {
-            const truncated = briefingText.substring(0, 297);
+        // 응답이 너무 길면 자르기 (단어 단위로 자르기) - 800자 제한
+        if (briefingText.length > 800) {
+            const truncated = briefingText.substring(0, 797);
             const lastSpace = truncated.lastIndexOf(' ');
-            return lastSpace > 250 ? truncated.substring(0, lastSpace) + '...' : truncated + '...';
+            return lastSpace > 750 ? truncated.substring(0, lastSpace) + '...' : truncated + '...';
         }
         return briefingText;
         
@@ -137,11 +137,11 @@ async function generateDailyBriefing(schedules, userName, targetDate) {
 
         const briefingText = await geminiService.generateText(prompt);
         
-        // 응답이 너무 길면 자르기 (단어 단위로 자르기)
-        if (briefingText.length > 100) {
-            const truncated = briefingText.substring(0, 97);
+        // 응답이 너무 길면 자르기 (단어 단위로 자르기) - 300자 제한
+        if (briefingText.length > 300) {
+            const truncated = briefingText.substring(0, 297);
             const lastSpace = truncated.lastIndexOf(' ');
-            return lastSpace > 80 ? truncated.substring(0, lastSpace) + '...' : truncated + '...';
+            return lastSpace > 250 ? truncated.substring(0, lastSpace) + '...' : truncated + '...';
         }
         return briefingText;
         
