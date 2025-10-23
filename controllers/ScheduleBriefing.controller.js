@@ -100,8 +100,12 @@ async function generateQuickBriefing(schedules, userName) {
             properties: schedule.relatedProperties?.map(p => p.title).join(', ') || ''
         }));
 
-        // 극도로 간단한 프롬프트
-        const prompt = `${userName}님 일정: ${scheduleData.map(s => s.title).join(', ')}. 조언 3가지.`;
+        // 상세한 정보를 포함한 프롬프트
+        const scheduleDetails = scheduleData.map(s => 
+            `제목: ${s.title}, 날짜: ${s.date}, 시간: ${s.time}, 장소: ${s.location}, 유형: ${s.type}, 설명: ${s.description}, 고객: ${s.customers}, 매물: ${s.properties}`
+        ).join(' | ');
+        
+        const prompt = `${userName}님의 이번 주 업무 일정 상세 정보: ${scheduleDetails}. 이 일정들을 성공적으로 수행하기 위한 실무 조언을 상세히 해주세요.`;
 
         const briefingText = await geminiService.generateText(prompt);
         
@@ -127,8 +131,12 @@ async function generateDailyBriefing(schedules, userName, targetDate) {
             properties: schedule.relatedProperties?.map(p => p.title).join(', ') || ''
         }));
 
-        // 극도로 간단한 프롬프트
-        const prompt = `${userName}님 오늘 일정: ${scheduleData.map(s => s.title).join(', ')}. 조언 2가지.`;
+        // 상세한 정보를 포함한 프롬프트
+        const scheduleDetails = scheduleData.map(s => 
+            `제목: ${s.title}, 시간: ${s.time}, 장소: ${s.location}, 유형: ${s.type}, 설명: ${s.description}, 고객: ${s.customers}, 매물: ${s.properties}`
+        ).join(' | ');
+        
+        const prompt = `${userName}님의 오늘 업무 일정 상세 정보: ${scheduleDetails}. 이 일정들을 성공적으로 수행하기 위한 실무 조언을 상세히 해주세요.`;
 
         const briefingText = await geminiService.generateText(prompt);
         
