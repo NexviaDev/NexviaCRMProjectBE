@@ -23,8 +23,12 @@ class GeminiService {
             
             // API 키 검증
             if (!this.apiKey) {
+                console.log('API 키가 없음');
                 throw new Error('Gemini API 키가 설정되지 않았습니다. 환경변수를 확인하세요.');
             }
+            
+            console.log('API 키 길이:', this.apiKey.length);
+            console.log('API 키 시작:', this.apiKey.substring(0, 20));
             
             const requestBody = {
                 contents: [{
