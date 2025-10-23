@@ -32,33 +32,9 @@ app.set('trust proxy', 1);
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
-// CORS 설정 - 더 관대한 설정으로 변경
-const allowedOrigins = [
-    'https://nexvia.netlify.app',
-    'https://app.nexvia2.co.kr',
-    'http://localhost:3000',
-    'http://localhost:3001'
-];
-
+// CORS 설정 - 모든 origin 허용 (개발용)
 app.use(cors({
-  origin: function (origin, callback) {
-    console.log('CORS 요청 origin:', origin);
-    
-    // origin이 없는 경우 (모바일 앱 등) 허용
-    if (!origin) {
-      console.log('Origin이 없음 - 허용');
-      return callback(null, true);
-    }
-    
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      console.log('Origin 허용됨:', origin);
-      callback(null, true);
-    } else {
-      console.log('CORS blocked origin:', origin);
-      console.log('허용된 origins:', allowedOrigins);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+  origin: true, // 모든 origin 허용
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'Cache-Control'],
