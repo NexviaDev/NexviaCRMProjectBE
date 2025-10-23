@@ -100,12 +100,8 @@ async function generateQuickBriefing(schedules, userName) {
             properties: schedule.relatedProperties?.map(p => p.title).join(', ') || ''
         }));
 
-        // 실제 일정 정보를 포함한 프롬프트
-        const prompt = `${userName}님의 이번 주 일정 브리핑을 작성해주세요.
-
-일정: ${scheduleData.map(s => `${s.title} (${s.date} ${s.time})`).join(', ')}
-
-요청: 이번 주 핵심 일정 요약과 성공을 위한 간단한 조언을 300자 이내로 작성해주세요.`;
+        // 간단하고 명확한 프롬프트
+        const prompt = `${userName}님의 이번 주 일정: ${scheduleData.map(s => s.title).join(', ')}. 간단한 브리핑과 조언을 300자 이내로 작성해주세요.`;
 
         const briefingText = await geminiService.generateText(prompt);
         
@@ -131,12 +127,8 @@ async function generateDailyBriefing(schedules, userName, targetDate) {
             properties: schedule.relatedProperties?.map(p => p.title).join(', ') || ''
         }));
 
-        // 실제 일정 정보를 포함한 프롬프트
-        const prompt = `${userName}님의 ${targetDate.toLocaleDateString('ko-KR')} 일정 브리핑을 작성해주세요.
-
-일정: ${scheduleData.map(s => `${s.title} (${s.time})`).join(', ')}
-
-요청: 오늘의 핵심 일정 요약과 성공을 위한 간단한 조언을 100자 이내로 작성해주세요.`;
+        // 간단하고 명확한 프롬프트
+        const prompt = `${userName}님의 오늘 일정: ${scheduleData.map(s => s.title).join(', ')}. 간단한 브리핑과 조언을 100자 이내로 작성해주세요.`;
 
         const briefingText = await geminiService.generateText(prompt);
         

@@ -20,7 +20,7 @@ class GeminiService {
             console.log('=== GEMINI API 호출 시작 (최적화) ===');
             console.log('API 키:', this.apiKey ? `${this.apiKey.substring(0, 10)}...` : '없음');
             console.log('프롬프트:', prompt.substring(0, 100) + '...');
-            
+데            
             // API 키 검증
             if (!this.apiKey) {
                 console.log('API 키가 없음');
@@ -41,7 +41,7 @@ class GeminiService {
                     temperature: 0.4, // 적당한 temperature로 창의적이면서도 일관된 응답
                     topK: 25, // 적당한 topK로 빠른 응답
                     topP: 0.85, // 적당한 topP로 빠른 응답
-                    maxOutputTokens: 200 // 최대 200토큰으로 제한 (30초 이내 완료)
+                    maxOutputTokens: 500 // 최대 500토큰으로 증가 (30초 이내 완료)
                 }
             };
 
