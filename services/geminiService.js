@@ -10,126 +10,64 @@ class GeminiService {
     }
 
     /**
-     * GEMINI API를 호출하여 텍스트 생성 (OpenAI 호환 방식)
+     * GEMINI API를 호출하여 텍스트 생성 (최적화된 버전 - 30초 이내 완료)
      * @param {string} prompt - 생성할 프롬프트
      * @param {object} options - 추가 옵션
      * @returns {Promise<string>} 생성된 텍스트
      */
     async generateText(prompt, options = {}) {
         try {
-            console.log('=== GEMINI API 호출 시작 ===');
-            console.log('API URL:', this.baseUrl);
+            console.log('=== GEMINI API 호출 시작 (최적화) ===');
             
             // API 키 검증
             if (!this.apiKey) {
                 throw new Error('Gemini API 키가 설정되지 않았습니다. 환경변수를 확인하세요.');
             }
             
-            console.log('API Key:', this.apiKey.substring(0, 10) + '...');
-            
             const requestBody = {
                 contents: [{
                     role: "user",
                     parts: [{
-                        text: `당신은 부동산 CRM 시스템의 AI 어시스턴트입니다. 한국어로 친근하고 전문적인 톤으로 응답해주세요.\n\n${prompt}`
+                        text: prompt // 프롬프트만 전송 (시스템 메시지 제거로 토큰 절약)
                     }]
                 }],
                 generationConfig: {
-                    temperature: options.temperature ?? 0.7,
-                    topK: options.topK ?? 32,
-                    topP: options.topP ?? 0.9
-                    // 토큰 제한 완전 제거 - 무제한 생성
+                    temperature: 0.3, // 낮은 temperature로 일관된 응답
+                    topK: 20, // 낮은 topK로 빠른 응답
+                    topP: 0.8, // 낮은 topP로 빠른 응답
+                    maxOutputTokens: 300 // 최대 300토큰으로 제한 (30초 이내 완료)
                 }
             };
 
-            console.log('요청 본문:', JSON.stringify(requestBody, null, 2));
-
-            // 재시도 로직 (네이티브 엔드포인트)
-            const maxRetries = 5; // 재시도 횟수 증가
-            let lastError;
-            for (let attempt = 0; attempt <= maxRetries; attempt++) {
-                try {
-                    const response = await axios.post(
-                        `${this.baseUrl}?key=${this.apiKey}`,
-                        requestBody,
-                        {
-                            headers: {
-                                'Content-Type': 'application/json',
-                            }
-                            // 타임아웃 완전 제거 - 무제한 대기
-                        }
-                    );
-
-                    console.log('응답 상태:', response.status);
-                    console.log('응답 데이터:', JSON.stringify(response.data, null, 2));
-
-                    if (response.data && response.data.candidates && response.data.candidates[0]) {
-                        const candidate = response.data.candidates[0];
-                        const parts = candidate.content?.parts || [];
-                        const result = parts.map(p => p.text || '').join('\n').trim();
-                        
-                        // 응답 완성도 확인
-                        const finishReason = candidate.finishReason;
-                        console.log('응답 완성 상태:', finishReason);
-                        console.log('생성된 텍스트 길이:', result.length);
-                        console.log('생성된 텍스트 미리보기:', result.substring(0, 200) + '...');
-                        
-                        // 응답이 정상적으로 생성되었으면 반환
-                        if (result.length > 0) {
-                            return result;
-                        } else {
-                            console.warn('응답이 비어있습니다. 재시도합니다.');
-                            throw new Error('EMPTY_RESPONSE');
-                        }
-                    } else {
-                        console.error('응답 형식 오류:', response.data);
-                        throw new Error('GEMINI API 응답 형식이 올바르지 않습니다.');
-                    }
-                } catch (err) {
-                    lastError = err;
-                    const isTimeout = err.code === 'ECONNABORTED' || /timeout/i.test(err.message);
-                    const isEmptyResponse = err.message === 'EMPTY_RESPONSE';
-                    const status = err.response?.status;
-                    console.warn(`네이티브 호출 실패 (시도 ${attempt + 1}/${maxRetries + 1}) - status=${status || 'n/a'} timeout=${isTimeout} emptyResponse=${isEmptyResponse}`);
-                    
-                    // 빈 응답인 경우 더 긴 대기 시간
-                    if (attempt < maxRetries) {
-                        const backoffMs = isEmptyResponse ? 3000 * Math.pow(2, attempt) : 1000 * Math.pow(2, attempt);
-                        console.log(`${backoffMs}ms 대기 후 재시도...`);
-                        await new Promise(r => setTimeout(r, backoffMs));
-                        continue;
+            // 간단한 API 호출 (타임아웃 최적화)
+            const response = await axios.post(
+                `${this.baseUrl}?key=${this.apiKey}`,
+                requestBody,
+                {
+                    timeout: 25000, // 25초 타임아웃
+                    headers: {
+                        'Content-Type': 'application/json',
                     }
                 }
-            }
-
-            // 폴백: OpenAI 호환 엔드포인트로 재시도
-            console.warn('네이티브 엔드포인트 실패. OpenAI 호환 엔드포인트로 폴백합니다.');
-            const oaBody = {
-                model: 'gemini-2.5-flash',
-                messages: [
-                    { role: 'system', content: '당신은 부동산 CRM 시스템의 AI 어시스턴트입니다. 한국어로 친근하고 전문적인 톤으로 응답해주세요.' },
-                    { role: 'user', content: prompt }
-                ],
-                temperature: requestBody.generationConfig.temperature,
-                top_p: requestBody.generationConfig.topP
-                // max_tokens 제거 - 토큰 제한 없음
-            };
-            const oaResp = await axios.post(
-                this.openAICompatUrl,
-                oaBody,
-                    {
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${this.apiKey}`
-                        }
-                        // 타임아웃 제거 - 무제한 대기
-                    }
             );
-            const choice = oaResp.data?.choices?.[0]?.message?.content;
-            if (!choice) {
-                throw lastError || new Error('GEMINI OpenAI 호환 응답 형식 오류');
+
+            console.log('응답 상태:', response.status);
+
+            if (response.data && response.data.candidates && response.data.candidates[0]) {
+                const candidate = response.data.candidates[0];
+                const parts = candidate.content?.parts || [];
+                const result = parts.map(p => p.text || '').join('\n').trim();
+                
+                console.log('생성된 텍스트 길이:', result.length);
+                
+                if (result.length > 0) {
+                    return result;
+                } else {
+                    throw new Error('응답이 비어있습니다.');
+                }
+            } else {
+                throw new Error('GEMINI API 응답 형식이 올바르지 않습니다.');
             }
-            return choice;
         } catch (error) {
             console.error('=== GEMINI API 호출 오류 ===');
             console.error('오류 타입:', error.constructor.name);

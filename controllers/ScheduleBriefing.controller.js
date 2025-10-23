@@ -8,37 +8,6 @@ exports.generateWeeklyBriefing = async (req, res) => {
     try {
         const user = req.user;
         
-        // 즉시 응답을 보내고 백그라운드에서 처리 (Heroku 타임아웃 방지)
-        res.json({
-            success: true,
-            message: "브리핑 생성이 시작되었습니다.",
-            data: {
-                status: "processing",
-                message: "AI가 브리핑을 생성하고 있습니다... 잠시 후 새로고침해주세요."
-            }
-        });
-
-        // 백그라운드에서 브리핑 생성 처리
-        setTimeout(async () => {
-            try {
-                await generateWeeklyBriefingBackground(user);
-            } catch (error) {
-                console.error('백그라운드 브리핑 생성 오류:', error);
-            }
-        }, 100);
-
-    } catch (error) {
-        console.error('금주 브리핑 생성 오류:', error);
-        res.status(500).json({
-            success: false,
-            message: '브리핑 생성 중 오류가 발생했습니다.'
-        });
-    }
-};
-
-// 백그라운드에서 실행되는 브리핑 생성 함수
-async function generateWeeklyBriefingBackground(user) {
-    try {
         // 이번 주 시작일과 종료일 계산
         const today = new Date();
         const startOfWeek = new Date(today);
@@ -49,7 +18,7 @@ async function generateWeeklyBriefingBackground(user) {
         endOfWeek.setDate(startOfWeek.getDate() + 6); // 토요일
         endOfWeek.setHours(23, 59, 59, 999);
 
-        console.log('=== 금주 브리핑 생성 (백그라운드) ===');
+        console.log('=== 금주 브리핑 생성 ===');
         console.log('사용자:', user.name);
         console.log('조회 기간:', startOfWeek.toISOString(), '~', endOfWeek.toISOString());
 
@@ -78,20 +47,74 @@ async function generateWeeklyBriefingBackground(user) {
         console.log('조회된 일정 수:', schedules.length);
 
         if (schedules.length === 0) {
-            console.log('이번 주 일정이 없습니다.');
-            return;
+            return res.json({
+                success: true,
+                data: {
+                    briefing: "이번 주에는 등록된 일정이 없습니다. 새로운 일정을 추가하거나 다른 주의 일정을 확인해보세요.",
+                    schedules: [],
+                    analysis: "일정이 없어 분석할 데이터가 부족합니다."
+                }
+            });
         }
 
-        // GEMINI API를 사용하여 브리핑 생성
-        const briefing = await geminiService.generateWeeklyBriefing(schedules, user.name);
-        
-        // 일정 분석도 함께 생성
-        const analysis = await geminiService.generateScheduleAnalysis(schedules);
+        // 간단한 브리핑 생성 (30초 타임아웃 방지)
+        const briefing = await generateQuickBriefing(schedules, user.name);
 
-        console.log('브리핑 생성 완료:', briefing.substring(0, 100) + '...');
+        res.json({
+            success: true,
+            data: {
+                briefing,
+                schedules: schedules.slice(0, 5), // 최대 5개만 전송
+                weekRange: {
+                    start: startOfWeek,
+                    end: endOfWeek
+                }
+            }
+        });
+
+    } catch (error) {
+        console.error('금주 브리핑 생성 오류:', error);
+        res.status(500).json({
+            success: false,
+            message: '브리핑 생성 중 오류가 발생했습니다.',
+            error: error.message
+        });
+    }
+};
+
+// 빠른 브리핑 생성 함수 (30초 이내 완료)
+async function generateQuickBriefing(schedules, userName) {
+    try {
+        // 일정 데이터를 간단하게 변환
+        const scheduleData = schedules.map(schedule => ({
+            title: schedule.title,
+            date: schedule.date?.toISOString().split('T')[0],
+            time: schedule.time,
+            type: schedule.type,
+            location: schedule.location,
+            publisher: schedule.publisher?.name || '미정'
+        }));
+
+        // 매우 간단한 프롬프트 (응답 시간 단축)
+        const prompt = `${userName}님의 이번 주 일정 브리핑을 간단히 작성해주세요.
+
+일정: ${JSON.stringify(scheduleData)}
+
+요청사항:
+- 핵심 일정만 간단히 정리 (300자 이내)
+- 각 일정별 핵심 포인트 1-2줄
+- 마지막에 주의사항 1줄
+
+형식: 자연스러운 문단으로 작성`;
+
+        const briefingText = await geminiService.generateText(prompt);
+        
+        // 응답이 너무 길면 자르기
+        return briefingText.length > 500 ? briefingText.substring(0, 500) + '...' : briefingText;
         
     } catch (error) {
-        console.error('백그라운드 브리핑 생성 오류:', error);
+        console.error('빠른 브리핑 생성 오류:', error);
+        return `${userName}님의 이번 주 일정이 ${schedules.length}개 있습니다. 각 일정을 성공적으로 완료하시길 바랍니다.`;
     }
 }
 
