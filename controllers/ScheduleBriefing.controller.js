@@ -105,12 +105,7 @@ async function generateQuickBriefing(schedules, userName) {
 
         const briefingText = await geminiService.generateText(prompt);
         
-        // 응답이 너무 길면 자르기 (단어 단위로 자르기) - 800자 제한
-        if (briefingText.length > 800) {
-            const truncated = briefingText.substring(0, 797);
-            const lastSpace = truncated.lastIndexOf(' ');
-            return lastSpace > 750 ? truncated.substring(0, lastSpace) + '...' : truncated + '...';
-        }
+        // 길이 제한 완전 제거 - Gemini가 생성한 전체 응답 반환
         return briefingText;
         
     } catch (error) {
@@ -137,12 +132,7 @@ async function generateDailyBriefing(schedules, userName, targetDate) {
 
         const briefingText = await geminiService.generateText(prompt);
         
-        // 응답이 너무 길면 자르기 (단어 단위로 자르기) - 300자 제한
-        if (briefingText.length > 300) {
-            const truncated = briefingText.substring(0, 297);
-            const lastSpace = truncated.lastIndexOf(' ');
-            return lastSpace > 250 ? truncated.substring(0, lastSpace) + '...' : truncated + '...';
-        }
+        // 길이 제한 완전 제거 - Gemini가 생성한 전체 응답 반환
         return briefingText;
         
     } catch (error) {

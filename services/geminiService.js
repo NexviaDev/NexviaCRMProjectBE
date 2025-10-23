@@ -40,8 +40,8 @@ class GeminiService {
                 generationConfig: {
                     temperature: 0.1, // 매우 낮은 temperature로 일관된 응답
                     topK: 5, // 매우 낮은 topK로 빠른 응답
-                    topP: 0.6, // 낮은 topP로 빠른 응답
-                    maxOutputTokens: 1500 // thoughtsTokenCount 고려하여 대폭 증가
+                    topP: 0.6 // 낮은 topP로 빠른 응답
+                    // maxOutputTokens 제거 - 무제한 응답 허용
                 }
             };
 
