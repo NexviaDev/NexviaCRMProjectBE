@@ -100,18 +100,12 @@ async function generateQuickBriefing(schedules, userName) {
             properties: schedule.relatedProperties?.map(p => p.title).join(', ') || ''
         }));
 
-        // 주관적 TIP을 포함한 프롬프트
-        const prompt = `${userName}님의 이번 주 일정을 분석하여 브리핑과 주관적 TIP을 제공해주세요.
+        // 간단하고 명확한 프롬프트
+        const prompt = `${userName}님의 이번 주 일정 브리핑을 작성해주세요.
 
-일정 정보:
-${JSON.stringify(scheduleData, null, 2)}
+일정: ${scheduleData.map(s => `${s.title} (${s.date} ${s.time})`).join(', ')}
 
-요청사항:
-1. 이번 주 핵심 일정 요약 (100자 이내)
-2. 각 일정별 성공을 위한 주관적 TIP (150자 이내)
-3. 전체적인 주의사항 및 조언 (50자 이내)
-
-총 300자 이내로 작성하고, 부동산 전문가의 관점에서 실용적인 조언을 포함해주세요.`;
+요청: 이번 주 핵심 일정 요약과 성공을 위한 간단한 조언을 300자 이내로 작성해주세요.`;
 
         const briefingText = await geminiService.generateText(prompt);
         
@@ -137,17 +131,12 @@ async function generateDailyBriefing(schedules, userName, targetDate) {
             properties: schedule.relatedProperties?.map(p => p.title).join(', ') || ''
         }));
 
-        // 주관적 TIP을 포함한 간단한 프롬프트
-        const prompt = `${userName}님의 ${targetDate.toLocaleDateString('ko-KR')} 일정을 분석하여 간단한 브리핑과 주관적 TIP을 제공해주세요.
+        // 간단하고 명확한 프롬프트
+        const prompt = `${userName}님의 ${targetDate.toLocaleDateString('ko-KR')} 일정 브리핑을 작성해주세요.
 
-일정 정보:
-${JSON.stringify(scheduleData, null, 2)}
+일정: ${scheduleData.map(s => `${s.title} (${s.time})`).join(', ')}
 
-요청사항:
-1. 오늘의 핵심 일정 요약 (50자 이내)
-2. 성공을 위한 주관적 TIP (50자 이내)
-
-총 100자 이내로 작성하고, 부동산 전문가의 관점에서 실용적인 조언을 포함해주세요.`;
+요청: 오늘의 핵심 일정 요약과 성공을 위한 간단한 조언을 100자 이내로 작성해주세요.`;
 
         const briefingText = await geminiService.generateText(prompt);
         

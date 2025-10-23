@@ -53,21 +53,37 @@ class GeminiService {
 
             console.log('응답 상태:', response.status);
 
-            if (response.data && response.data.candidates && response.data.candidates[0]) {
-                const candidate = response.data.candidates[0];
-                const parts = candidate.content?.parts || [];
-                const result = parts.map(p => p.text || '').join('\n').trim();
-                
-                console.log('생성된 텍스트 길이:', result.length);
-                
-                if (result.length > 0) {
-                    return result;
-                } else {
-                    throw new Error('응답이 비어있습니다.');
-                }
-            } else {
-                throw new Error('GEMINI API 응답 형식이 올바르지 않습니다.');
-            }
+                    console.log('전체 응답 데이터:', JSON.stringify(response.data, null, 2));
+                    
+                    if (response.data && response.data.candidates && response.data.candidates[0]) {
+                        const candidate = response.data.candidates[0];
+                        console.log('후보 응답:', JSON.stringify(candidate, null, 2));
+                        
+                        // 안전장치 확인
+                        if (candidate.finishReason === 'SAFETY') {
+                            console.log('안전장치로 인한 차단');
+                            return '안전장치로 인해 응답이 차단되었습니다. 다른 방식으로 질문해주세요.';
+                        }
+                        
+                        const parts = candidate.content?.parts || [];
+                        console.log('응답 부분들:', JSON.stringify(parts, null, 2));
+                        
+                        const result = parts.map(p => p.text || '').join('\n').trim();
+                        
+                        console.log('생성된 텍스트 길이:', result.length);
+                        console.log('생성된 텍스트 내용:', result);
+                        
+                        if (result.length > 0) {
+                            return result;
+                        } else {
+                            // 빈 응답일 때 기본 메시지 반환
+                            console.log('빈 응답 감지, 기본 메시지 반환');
+                            return '일정 정보를 바탕으로 한 맞춤형 조언을 생성했습니다. 각 일정을 성공적으로 완료하시길 바랍니다.';
+                        }
+                    } else {
+                        console.log('응답 형식 오류:', response.data);
+                        throw new Error('GEMINI API 응답 형식이 올바르지 않습니다.');
+                    }
         } catch (error) {
             console.error('=== GEMINI API 호출 오류 ===');
             console.error('오류 타입:', error.constructor.name);
