@@ -100,13 +100,18 @@ async function generateQuickBriefing(schedules, userName) {
             properties: schedule.relatedProperties?.map(p => p.title).join(', ') || ''
         }));
 
-        // 극도로 간단한 프롬프트
-        const prompt = `${userName}님 일정: ${scheduleData.map(s => s.title).join(', ')}. 조언.`;
+        // 짧은 응답을 유도하는 프롬프트
+        const prompt = `${userName}님의 이번 주 업무 일정: ${scheduleData.map(s => s.title).join(', ')}. 이 일정 성공을 위한 핵심 조언 3가지만 간단히 알려주세요.`;
 
         const briefingText = await geminiService.generateText(prompt);
         
-        // 응답이 너무 길면 자르기
-        return briefingText.length > 300 ? briefingText.substring(0, 300) + '...' : briefingText;
+        // 응답이 너무 길면 자르기 (단어 단위로 자르기)
+        if (briefingText.length > 300) {
+            const truncated = briefingText.substring(0, 297);
+            const lastSpace = truncated.lastIndexOf(' ');
+            return lastSpace > 250 ? truncated.substring(0, lastSpace) + '...' : truncated + '...';
+        }
+        return briefingText;
         
     } catch (error) {
         console.error('금주 브리핑 생성 오류:', error);
@@ -127,13 +132,18 @@ async function generateDailyBriefing(schedules, userName, targetDate) {
             properties: schedule.relatedProperties?.map(p => p.title).join(', ') || ''
         }));
 
-        // 극도로 간단한 프롬프트
-        const prompt = `${userName}님 오늘 일정: ${scheduleData.map(s => s.title).join(', ')}. 조언.`;
+        // 짧은 응답을 유도하는 프롬프트
+        const prompt = `${userName}님의 오늘 업무 일정: ${scheduleData.map(s => s.title).join(', ')}. 이 일정 성공을 위한 핵심 조언 2가지만 간단히 알려주세요.`;
 
         const briefingText = await geminiService.generateText(prompt);
         
-        // 응답이 너무 길면 자르기
-        return briefingText.length > 100 ? briefingText.substring(0, 100) + '...' : briefingText;
+        // 응답이 너무 길면 자르기 (단어 단위로 자르기)
+        if (briefingText.length > 100) {
+            const truncated = briefingText.substring(0, 97);
+            const lastSpace = truncated.lastIndexOf(' ');
+            return lastSpace > 80 ? truncated.substring(0, lastSpace) + '...' : truncated + '...';
+        }
+        return briefingText;
         
     } catch (error) {
         console.error('일일 브리핑 생성 오류:', error);
