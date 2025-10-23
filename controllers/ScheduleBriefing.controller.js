@@ -97,15 +97,21 @@ async function generateQuickBriefing(schedules, userName) {
             priority: schedule.priority || '보통',
             status: schedule.status || '예정',
             customers: schedule.relatedCustomers?.map(c => c.name).join(', ') || '',
-            properties: schedule.relatedProperties?.map(p => p.title).join(', ') || ''
+            properties: schedule.relatedProperties?.map(p => p.title).join(', ') || '',
+            contracts: schedule.relatedContracts?.map(c => c.title).join(', ') || '',
+            companyNumber: schedule.byCompanyNumber || '',
+            cancelReason: schedule.cancelReason || '',
+            isDeleted: schedule.isDeleted || false,
+            createdAt: schedule.createdAt?.toISOString().split('T')[0] || '',
+            updatedAt: schedule.updatedAt?.toISOString().split('T')[0] || ''
         }));
 
-        // 상세한 정보를 포함한 프롬프트
+        // 모든 DB 정보를 포함한 상세 프롬프트
         const scheduleDetails = scheduleData.map(s => 
-            `제목: ${s.title}, 날짜: ${s.date}, 시간: ${s.time}, 장소: ${s.location}, 유형: ${s.type}, 설명: ${s.description}, 고객: ${s.customers}, 매물: ${s.properties}`
+            `제목: ${s.title}, 날짜: ${s.date}, 시간: ${s.time}, 장소: ${s.location}, 유형: ${s.type}, 설명: ${s.description}, 우선순위: ${s.priority}, 상태: ${s.status}, 담당자: ${s.publisher}, 고객: ${s.customers}, 매물: ${s.properties}, 계약: ${s.contracts}, 사업자번호: ${s.companyNumber}, 취소사유: ${s.cancelReason}, 삭제여부: ${s.isDeleted}, 생성일: ${s.createdAt}, 수정일: ${s.updatedAt}`
         ).join(' | ');
         
-        const prompt = `${userName}님의 이번 주 업무 일정 상세 정보: ${scheduleDetails}. 이 일정들을 성공적으로 수행하기 위한 실무 조언을 상세히 해주세요.`;
+        const prompt = `${userName}님의 이번 주 업무 일정 완전한 정보: ${scheduleDetails}. 이 모든 정보를 바탕으로 일정들을 성공적으로 수행하기 위한 실무 조언을 상세히 해주세요.`;
 
         const briefingText = await geminiService.generateText(prompt);
         
@@ -127,16 +133,26 @@ async function generateDailyBriefing(schedules, userName, targetDate) {
             time: schedule.time,
             type: schedule.type,
             location: schedule.location,
+            publisher: schedule.publisher?.name || '미정',
+            description: schedule.description || '',
+            priority: schedule.priority || '보통',
+            status: schedule.status || '예정',
             customers: schedule.relatedCustomers?.map(c => c.name).join(', ') || '',
-            properties: schedule.relatedProperties?.map(p => p.title).join(', ') || ''
+            properties: schedule.relatedProperties?.map(p => p.title).join(', ') || '',
+            contracts: schedule.relatedContracts?.map(c => c.title).join(', ') || '',
+            companyNumber: schedule.byCompanyNumber || '',
+            cancelReason: schedule.cancelReason || '',
+            isDeleted: schedule.isDeleted || false,
+            createdAt: schedule.createdAt?.toISOString().split('T')[0] || '',
+            updatedAt: schedule.updatedAt?.toISOString().split('T')[0] || ''
         }));
 
-        // 상세한 정보를 포함한 프롬프트
+        // 모든 DB 정보를 포함한 상세 프롬프트
         const scheduleDetails = scheduleData.map(s => 
-            `제목: ${s.title}, 시간: ${s.time}, 장소: ${s.location}, 유형: ${s.type}, 설명: ${s.description}, 고객: ${s.customers}, 매물: ${s.properties}`
+            `제목: ${s.title}, 시간: ${s.time}, 장소: ${s.location}, 유형: ${s.type}, 설명: ${s.description}, 우선순위: ${s.priority}, 상태: ${s.status}, 담당자: ${s.publisher}, 고객: ${s.customers}, 매물: ${s.properties}, 계약: ${s.contracts}, 사업자번호: ${s.companyNumber}, 취소사유: ${s.cancelReason}, 삭제여부: ${s.isDeleted}, 생성일: ${s.createdAt}, 수정일: ${s.updatedAt}`
         ).join(' | ');
         
-        const prompt = `${userName}님의 오늘 업무 일정 상세 정보: ${scheduleDetails}. 이 일정들을 성공적으로 수행하기 위한 실무 조언을 상세히 해주세요.`;
+        const prompt = `${userName}님의 오늘 업무 일정 완전한 정보: ${scheduleDetails}. 이 모든 정보를 바탕으로 일정들을 성공적으로 수행하기 위한 실무 조언을 상세히 해주세요.`;
 
         const briefingText = await geminiService.generateText(prompt);
         
