@@ -37,7 +37,7 @@ app.use((req, res, next) => {
   // 모든 origin 허용 (브라우저 캐시 문제 해결)
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Pragma, Expires');
   res.header('Access-Control-Allow-Credentials', 'false'); // credentials 비활성화로 호환성 향상
   
   // 캐시 완전 방지
