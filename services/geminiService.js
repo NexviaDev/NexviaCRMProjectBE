@@ -32,10 +32,10 @@ class GeminiService {
                     }]
                 }],
                 generationConfig: {
-                    temperature: 0.3, // 낮은 temperature로 일관된 응답
-                    topK: 20, // 낮은 topK로 빠른 응답
-                    topP: 0.8, // 낮은 topP로 빠른 응답
-                    maxOutputTokens: 300 // 최대 300토큰으로 제한 (30초 이내 완료)
+                    temperature: 0.4, // 적당한 temperature로 창의적이면서도 일관된 응답
+                    topK: 25, // 적당한 topK로 빠른 응답
+                    topP: 0.85, // 적당한 topP로 빠른 응답
+                    maxOutputTokens: 200 // 최대 200토큰으로 제한 (30초 이내 완료)
                 }
             };
 

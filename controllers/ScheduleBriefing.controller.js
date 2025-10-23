@@ -82,39 +82,81 @@ exports.generateWeeklyBriefing = async (req, res) => {
     }
 };
 
-// 빠른 브리핑 생성 함수 (30초 이내 완료)
+// 금주 브리핑 생성 함수 (300자 제한, 주관적 TIP 포함)
 async function generateQuickBriefing(schedules, userName) {
     try {
-        // 일정 데이터를 간단하게 변환
+        // 일정 데이터를 상세하게 변환 (TIP 생성용)
         const scheduleData = schedules.map(schedule => ({
             title: schedule.title,
             date: schedule.date?.toISOString().split('T')[0],
             time: schedule.time,
             type: schedule.type,
             location: schedule.location,
-            publisher: schedule.publisher?.name || '미정'
+            publisher: schedule.publisher?.name || '미정',
+            description: schedule.description || '',
+            priority: schedule.priority || '보통',
+            status: schedule.status || '예정',
+            customers: schedule.relatedCustomers?.map(c => c.name).join(', ') || '',
+            properties: schedule.relatedProperties?.map(p => p.title).join(', ') || ''
         }));
 
-        // 매우 간단한 프롬프트 (응답 시간 단축)
-        const prompt = `${userName}님의 이번 주 일정 브리핑을 간단히 작성해주세요.
+        // 주관적 TIP을 포함한 프롬프트
+        const prompt = `${userName}님의 이번 주 일정을 분석하여 브리핑과 주관적 TIP을 제공해주세요.
 
-일정: ${JSON.stringify(scheduleData)}
+일정 정보:
+${JSON.stringify(scheduleData, null, 2)}
 
 요청사항:
-- 핵심 일정만 간단히 정리 (300자 이내)
-- 각 일정별 핵심 포인트 1-2줄
-- 마지막에 주의사항 1줄
+1. 이번 주 핵심 일정 요약 (100자 이내)
+2. 각 일정별 성공을 위한 주관적 TIP (150자 이내)
+3. 전체적인 주의사항 및 조언 (50자 이내)
 
-형식: 자연스러운 문단으로 작성`;
+총 300자 이내로 작성하고, 부동산 전문가의 관점에서 실용적인 조언을 포함해주세요.`;
 
         const briefingText = await geminiService.generateText(prompt);
         
         // 응답이 너무 길면 자르기
-        return briefingText.length > 500 ? briefingText.substring(0, 500) + '...' : briefingText;
+        return briefingText.length > 300 ? briefingText.substring(0, 300) + '...' : briefingText;
         
     } catch (error) {
-        console.error('빠른 브리핑 생성 오류:', error);
+        console.error('금주 브리핑 생성 오류:', error);
         return `${userName}님의 이번 주 일정이 ${schedules.length}개 있습니다. 각 일정을 성공적으로 완료하시길 바랍니다.`;
+    }
+}
+
+// 일일 브리핑 생성 함수 (100자 제한, 주관적 TIP 포함)
+async function generateDailyBriefing(schedules, userName, targetDate) {
+    try {
+        // 일정 데이터를 간단하게 변환 (TIP 생성용)
+        const scheduleData = schedules.map(schedule => ({
+            title: schedule.title,
+            time: schedule.time,
+            type: schedule.type,
+            location: schedule.location,
+            customers: schedule.relatedCustomers?.map(c => c.name).join(', ') || '',
+            properties: schedule.relatedProperties?.map(p => p.title).join(', ') || ''
+        }));
+
+        // 주관적 TIP을 포함한 간단한 프롬프트
+        const prompt = `${userName}님의 ${targetDate.toLocaleDateString('ko-KR')} 일정을 분석하여 간단한 브리핑과 주관적 TIP을 제공해주세요.
+
+일정 정보:
+${JSON.stringify(scheduleData, null, 2)}
+
+요청사항:
+1. 오늘의 핵심 일정 요약 (50자 이내)
+2. 성공을 위한 주관적 TIP (50자 이내)
+
+총 100자 이내로 작성하고, 부동산 전문가의 관점에서 실용적인 조언을 포함해주세요.`;
+
+        const briefingText = await geminiService.generateText(prompt);
+        
+        // 응답이 너무 길면 자르기
+        return briefingText.length > 100 ? briefingText.substring(0, 100) + '...' : briefingText;
+        
+    } catch (error) {
+        console.error('일일 브리핑 생성 오류:', error);
+        return `${userName}님의 오늘 일정이 ${schedules.length}개 있습니다. 성공적인 하루 되세요!`;
     }
 }
 
@@ -317,55 +359,8 @@ exports.generateDailyBriefing = async (req, res) => {
             });
         }
 
-        // 일일 브리핑용 프롬프트 - 더 개인적이고 구체적으로
-        const detailedSchedules = schedules.map(s => ({
-            title: s.title,
-            date: s.date,
-            time: s.time,
-            type: s.type,
-            priority: s.priority,
-            status: s.status,
-            description: s.description,
-            location: s.location,
-            publisher: s.publisher?.name,
-            customers: s.relatedCustomers?.map(c => ({
-                name: c.name,
-                phone: c.phone,
-                email: c.email
-            })),
-            properties: s.relatedProperties?.map(p => ({
-                title: p.title,
-                address: p.address
-            })),
-            contracts: s.relatedContracts?.map(c => ({
-                contractNumber: c.contractNumber,
-                type: c.type,
-                status: c.status
-            }))
-        }));
-
-        const prompt = `
-당신은 부동산 CRM의 전략 코치입니다. ${user.name}님의 오늘 일정을 바탕으로 "언제, 어디서, 누구를" 만나는지 시간순으로 자연스럽게 정리하고, 형식에 얽매이지 말고 Gemini 스스로의 판단으로 가장 효과적인 접근 전략을 제안하세요. 지나치게 목차화하지 말고 흐름 있는 서술형 요약과 실전 조언을 섞어 주세요. (전체 길이: 600자 이내)
-
-시간순 일정 요약 데이터(JSON):
-${JSON.stringify(detailedSchedules, null, 2)}
-
-요청 사항:
-- 시간 흐름을 따라 핵심 일정과 만남의 맥락을 간결히 묘사
-- 각 만남에서 유효한 첫 한마디, 질문 1개, 피해야 할 말 한 가지
-- 고객/파트너 유형에 따른 주관적 판단 기반의 접근 전략(톤, 자료, 심리 포인트)
-- 매물/계약이 얽힌 경우, 다음 행동 한 줄로 제시
-
-주의:
-- 불필요한 형식화/표는 피하고, 자연스러운 문단 구성
-- 과도한 일반론 대신, 데이터에 기반한 구체적 조언 중심
-- 전체 분량은 600자 이내를 지키기
-`;
-
-        const briefing = await geminiService.generateText(prompt, {
-            temperature: 0.8
-            // 토큰 제한 제거 - 무제한 생성
-        });
+        // 간단한 일일 브리핑 생성 (100자 제한, 주관적 TIP 포함)
+        const briefing = await generateDailyBriefing(schedules, user.name, targetDate);
 
         res.json({
             success: true,
