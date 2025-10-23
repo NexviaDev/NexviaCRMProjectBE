@@ -100,8 +100,8 @@ async function generateQuickBriefing(schedules, userName) {
             properties: schedule.relatedProperties?.map(p => p.title).join(', ') || ''
         }));
 
-        // 간단하고 명확한 프롬프트
-        const prompt = `${userName}님의 이번 주 일정: ${scheduleData.map(s => s.title).join(', ')}. 간단한 브리핑과 조언을 300자 이내로 작성해주세요.`;
+        // 초간단 프롬프트
+        const prompt = `${userName}님 일정: ${scheduleData.map(s => s.title).join(', ')}. 간단한 조언 300자 이내.`;
 
         const briefingText = await geminiService.generateText(prompt);
         
@@ -127,8 +127,8 @@ async function generateDailyBriefing(schedules, userName, targetDate) {
             properties: schedule.relatedProperties?.map(p => p.title).join(', ') || ''
         }));
 
-        // 간단하고 명확한 프롬프트
-        const prompt = `${userName}님의 오늘 일정: ${scheduleData.map(s => s.title).join(', ')}. 간단한 브리핑과 조언을 100자 이내로 작성해주세요.`;
+        // 초간단 프롬프트
+        const prompt = `${userName}님 오늘 일정: ${scheduleData.map(s => s.title).join(', ')}. 간단한 조언 100자 이내.`;
 
         const briefingText = await geminiService.generateText(prompt);
         
