@@ -32,24 +32,20 @@ app.set('trust proxy', 1);
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
-// CORS 설정 - 모든 가능한 헤더 포함
+// CORS 설정 - credentials와 wildcard origin 문제 해결
 app.use((req, res, next) => {
-  // 모든 origin 허용
-  res.header('Access-Control-Allow-Origin', '*');
+  // 특정 origin에 대해서만 credentials 허용
+  const origin = req.headers.origin;
+  if (origin && (origin.includes('nexvia.netlify.app') || origin.includes('localhost'))) {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Credentials', 'true');
+  } else {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Credentials', 'false');
+  }
+  
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, X-CSRF-Token');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Max-Age', '86400'); // 24시간
-  
-  // Cross-Origin 관련 추가 헤더
-  res.header('Cross-Origin-Embedder-Policy', 'unsafe-none');
-  res.header('Cross-Origin-Opener-Policy', 'unsafe-none');
-  res.header('Cross-Origin-Resource-Policy', 'cross-origin');
-  
-  // 캐시 방지 헤더
-  res.header('Cache-Control', 'no-cache, no-store, must-revalidate');
-  res.header('Pragma', 'no-cache');
-  res.header('Expires', '0');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control');
   
   // OPTIONS 요청에 대한 즉시 응답
   if (req.method === 'OPTIONS') {
@@ -59,16 +55,6 @@ app.use((req, res, next) => {
   
   next();
 });
-
-// 추가 CORS 미들웨어 (이중 보장)
-app.use(cors({
-  origin: true,
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'Cache-Control', 'X-CSRF-Token'],
-  optionsSuccessStatus: 200,
-  preflightContinue: false
-}));
 
 // 보안 헤더 및 HSTS (프로덕션에서만 강제)
 app.use((req, res, next) => {
