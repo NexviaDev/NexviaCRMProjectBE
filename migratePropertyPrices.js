@@ -8,7 +8,7 @@ const connectDB = async () => {
             useNewUrlParser: true,
             useUnifiedTopology: true,
         });
-        console.log('MongoDB 연결 성공');
+('MongoDB 연결 성공');
     } catch (error) {
         console.error('MongoDB 연결 실패:', error);
         process.exit(1);
@@ -18,7 +18,7 @@ const connectDB = async () => {
 // 매물 가격 마이그레이션 함수
 const migratePropertyPrices = async () => {
     try {
-        console.log('매물 가격 마이그레이션 시작...');
+('매물 가격 마이그레이션 시작...');
         
         // prices 필드가 없거나 비어있는 매물들 조회
         const properties = await Property.find({
@@ -30,7 +30,7 @@ const migratePropertyPrices = async () => {
             isDeleted: false
         });
 
-        console.log(`마이그레이션 대상 매물 수: ${properties.length}개`);
+(`마이그레이션 대상 매물 수: ${properties.length}개`);
 
         let migratedCount = 0;
         let errorCount = 0;
@@ -77,7 +77,7 @@ const migratePropertyPrices = async () => {
                     $set: { prices: prices }
                 });
 
-                console.log(`✅ 마이그레이션 완료: ${property.title} (${propertyTypes.join(', ')})`);
+(`✅ 마이그레이션 완료: ${property.title} (${propertyTypes.join(', ')})`);
                 migratedCount++;
 
             } catch (error) {
@@ -86,10 +86,10 @@ const migratePropertyPrices = async () => {
             }
         }
 
-        console.log('\n=== 마이그레이션 완료 ===');
-        console.log(`성공: ${migratedCount}개`);
-        console.log(`실패: ${errorCount}개`);
-        console.log(`총 처리: ${migratedCount + errorCount}개`);
+('\n=== 마이그레이션 완료 ===');
+(`성공: ${migratedCount}개`);
+(`실패: ${errorCount}개`);
+(`총 처리: ${migratedCount + errorCount}개`);
 
     } catch (error) {
         console.error('마이그레이션 중 오류 발생:', error);
@@ -101,7 +101,7 @@ const runMigration = async () => {
     await connectDB();
     await migratePropertyPrices();
     
-    console.log('\n마이그레이션이 완료되었습니다.');
+('\n마이그레이션이 완료되었습니다.');
     process.exit(0);
 };
 

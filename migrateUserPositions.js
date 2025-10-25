@@ -14,7 +14,7 @@ const connectDB = async () => {
         };
         
         await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/crm_project', options);
-        console.log('✅ MongoDB 연결 성공');
+('✅ MongoDB 연결 성공');
         
         // 연결 상태 모니터링
         mongoose.connection.on('error', (err) => {
@@ -22,7 +22,7 @@ const connectDB = async () => {
         });
         
         mongoose.connection.on('disconnected', () => {
-            console.log('⚠️ MongoDB 연결이 끊어졌습니다.');
+('⚠️ MongoDB 연결이 끊어졌습니다.');
         });
         
     } catch (error) {
@@ -37,7 +37,7 @@ const User = require('./models/user.model');
 // 마이그레이션 실행 함수
 const migrateUserPositions = async () => {
     try {
-        console.log('🚀 사용자 직급 필드 마이그레이션을 시작합니다...\n');
+('🚀 사용자 직급 필드 마이그레이션을 시작합니다...\n');
 
         // 1. position 필드가 없는 사용자 찾기
         const usersWithoutPosition = await User.find({
@@ -48,10 +48,10 @@ const migrateUserPositions = async () => {
             ]
         });
 
-        console.log(`📊 총 ${usersWithoutPosition.length}명의 사용자에게 직급 필드가 필요합니다.`);
+(`📊 총 ${usersWithoutPosition.length}명의 사용자에게 직급 필드가 필요합니다.`);
 
         if (usersWithoutPosition.length === 0) {
-            console.log('✅ 모든 사용자가 이미 직급 정보를 가지고 있습니다.');
+('✅ 모든 사용자가 이미 직급 정보를 가지고 있습니다.');
             return;
         }
 
@@ -83,7 +83,7 @@ const migrateUserPositions = async () => {
                     $set: { position: defaultPosition }
                 });
 
-                console.log(`✅ ${user.email} (${user.name}) - 직급: ${defaultPosition} 설정 완료`);
+(`✅ ${user.email} (${user.name}) - 직급: ${defaultPosition} 설정 완료`);
                 successCount++;
 
             } catch (error) {
@@ -92,12 +92,12 @@ const migrateUserPositions = async () => {
             }
         }
 
-        console.log(`\n🎉 마이그레이션 완료!`);
-        console.log(`   ✅ 성공: ${successCount}명`);
-        console.log(`   ❌ 실패: ${errorCount}명`);
+(`\n🎉 마이그레이션 완료!`);
+(`   ✅ 성공: ${successCount}명`);
+(`   ❌ 실패: ${errorCount}명`);
 
         // 3. 직급별 사용자 수 통계 출력
-        console.log('\n📊 직급별 사용자 수 통계:');
+('\n📊 직급별 사용자 수 통계:');
         const positionStats = await User.aggregate([
             {
                 $group: {
@@ -112,12 +112,12 @@ const migrateUserPositions = async () => {
 
         positionStats.forEach(stat => {
             const positionName = stat._id || '미설정';
-            console.log(`   ${positionName}: ${stat.count}명`);
+(`   ${positionName}: ${stat.count}명`);
         });
 
         // 4. 전체 사용자 수 확인
         const totalUsers = await User.countDocuments();
-        console.log(`\n📈 전체 사용자 수: ${totalUsers}명`);
+(`\n📈 전체 사용자 수: ${totalUsers}명`);
 
     } catch (error) {
         console.error('❌ 마이그레이션 실행 중 오류 발생:', error.message);
@@ -130,15 +130,15 @@ const main = async () => {
         await connectDB();
         await migrateUserPositions();
         
-        console.log('\n🎯 마이그레이션이 완료되었습니다.');
-        console.log('💡 이제 모든 사용자가 position 필드를 가지고 있습니다.');
+('\n🎯 마이그레이션이 완료되었습니다.');
+('💡 이제 모든 사용자가 position 필드를 가지고 있습니다.');
         
     } catch (error) {
         console.error('❌ 마이그레이션 실패:', error.message);
     } finally {
         // MongoDB 연결 종료
         await mongoose.connection.close();
-        console.log('🔌 MongoDB 연결이 종료되었습니다.');
+('🔌 MongoDB 연결이 종료되었습니다.');
         process.exit(0);
     }
 };

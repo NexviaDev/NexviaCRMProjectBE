@@ -313,13 +313,9 @@ exports.getProperty = async (req, res) => {
 // 매물 등록
 exports.createProperty = async (req, res) => {
     try {
-        console.log('매물 등록 요청 받음:', req.body);
         const { title, type, area, rooms, bathrooms, address, detailedAddress, status, customerId, specialNotes, parking, pets, elevator, contractPeriod, prices } = req.body;
         const publisherId = req.user._id; // JWT 토큰에서 사용자 ID 추출
         
-        console.log('사용자 ID:', publisherId);
-        console.log('매물명:', title);
-        console.log('매물 유형:', type);
 
         // 금액 필드를 숫자로 변환하는 함수
         const convertToNumber = (value) => {
@@ -332,7 +328,6 @@ exports.createProperty = async (req, res) => {
 
         // 사용자 존재 확인
         const user = await User.findById(publisherId);
-        console.log('사용자 정보:', user ? { id: user._id, name: user.name, businessNumber: user.businessNumber } : '사용자 없음');
         if (!user) {
             return res.status(404).json({
                 success: false,
@@ -342,7 +337,6 @@ exports.createProperty = async (req, res) => {
 
         // 가격 정보 검증
         if (prices) {
-            console.log('가격 정보 검증 시작:', prices);
             const validationErrors = [];
             
             // 매매가 선택된 경우 매매가격 필수
@@ -361,7 +355,6 @@ exports.createProperty = async (req, res) => {
             }
             
             if (validationErrors.length > 0) {
-                console.log('가격 검증 오류:', validationErrors);
                 return res.status(400).json({
                     success: false,
                     message: '가격 정보 입력 오류',
@@ -425,18 +418,7 @@ exports.createProperty = async (req, res) => {
             customer: customerId || null
         });
 
-        console.log('저장할 매물 데이터:', {
-            title: property.title,
-            type: property.type,
-            publisher: property.publisher,
-            byCompanyNumber: property.byCompanyNumber,
-            area: property.area,
-            rooms: property.rooms,
-            bathrooms: property.bathrooms
-        });
-
         await property.save();
-        console.log('매물 저장 완료:', property._id);
 
         // 등록된 매물 정보 반환 (게시자 정보 포함)
         const savedProperty = await Property.findById(property._id)

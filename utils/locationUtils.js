@@ -7,7 +7,6 @@ const axios = require('axios');
 // OpenStreetMap Nominatim API 사용 (무료)
 const getLocationFromCoordinates = async (latitude, longitude) => {
   try {
-    console.log(`🌍 OpenStreetMap API 호출: 위도 ${latitude}, 경도 ${longitude}`);
     
     const response = await axios.get('https://nominatim.openstreetmap.org/reverse', {
       params: {
@@ -22,7 +21,6 @@ const getLocationFromCoordinates = async (latitude, longitude) => {
       }
     });
 
-    console.log('📍 OpenStreetMap API 응답:', JSON.stringify(response.data, null, 2));
 
     if (response.data && response.data.address) {
       const address = response.data.address;
@@ -82,7 +80,6 @@ const getLocationFromKakaoAPI = async (latitude, longitude) => {
     const kakaoApiKey = process.env.KAKAO_API_KEY;
     
     if (!kakaoApiKey) {
-      console.log('Kakao API 키가 없습니다. OpenStreetMap을 사용합니다.');
       return await getLocationFromCoordinates(latitude, longitude);
     }
 

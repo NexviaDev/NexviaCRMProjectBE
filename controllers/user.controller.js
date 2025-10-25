@@ -42,7 +42,6 @@ const sendVerificationEmail = (email, token) => {
 
     transporter.sendMail(mailOptions, (error, info) => {
         if (error) {
-            console.error('Error sending email:', error);
         } else {
     
         }
@@ -102,8 +101,6 @@ userController.createUser = async (req, res) => {
 
         res.status(200).json({ status: 'success', message: '계정이 생성되었습니다.' });
     } catch (error) {
-        console.error("회원가입 에러:", error.message); // 에러 로그 추가
-        console.error("에러 상세:", error); // 전체 에러 객체 로깅
         res.status(400).json({ status: 'fail', error: error.message });
     }
 };
@@ -181,7 +178,6 @@ userController.deleteUserByAdmin = async (req, res) => {
 
         res.status(200).json({ status: 'success', message: '사용자가 성공적으로 삭제되었습니다.' });
     } catch (error) {
-        console.error('사용자 삭제 실패:', error);
         res.status(400).json({ status: 'fail', error: error.message });
     }
 };
@@ -233,8 +229,6 @@ userController.deleteUser = async (req, res) => {
 
         res.status(200).json({ status: 'success', message: '회원 탈퇴가 완료되었습니다.' });
     } catch (error) {
-        console.error('회원 탈퇴 오류:', error.message);
-        console.error('회원 탈퇴 상세 에러:', error);
         res.status(500).json({ status: 'fail', message: '서버 에러가 발생했습니다.', error: error.message });
     }
 };
@@ -283,7 +277,6 @@ userController.loginWithEmail = async (req, res) => {
             message: wasLoggedIn ? '다른 기기에서 로그인되어 기존 세션이 종료되었습니다.' : '로그인 성공'
         });
     } catch (error) {
-        console.error('로그인 오류:', error.message);
         res.status(500).json({ status: 'fail', message: '서버 오류가 발생했습니다.' });
     }
 };
@@ -291,13 +284,9 @@ userController.loginWithEmail = async (req, res) => {
 // 구글 OAuth 로그인
 userController.googleLogin = async (req, res) => {
     try {
-        console.log('🔍 Google Login Request Body:', req.body);
-        console.log('🔍 Google Login Headers:', req.headers);
-        
         // MongoDB 연결 상태 확인
         const mongoose = require('mongoose');
         if (mongoose.connection.readyState !== 1) {
-            console.error('❌ MongoDB 연결 실패:', mongoose.connection.readyState);
             return res.status(503).json({ 
                 status: 'fail', 
                 message: '데이터베이스 연결이 불안정합니다. 잠시 후 다시 시도해주세요.',
@@ -308,14 +297,11 @@ userController.googleLogin = async (req, res) => {
         const { googleId, email, name, nickname, picture } = req.body;
 
         if (!googleId || !email) {
-            console.log('❌ 필수 정보 누락:', { googleId, email });
             return res.status(400).json({ status: 'fail', message: '필수 정보가 누락되었습니다.' });
         }
 
-        console.log('✅ 필수 정보 확인 완료:', { googleId, email, name });
 
         // 기존 사용자 검색 (구글 ID 또는 이메일로)
-        console.log('🔍 사용자 검색 시작...');
         let user = await User.findOne({
             $or: [
                 { googleId: googleId },
@@ -323,10 +309,8 @@ userController.googleLogin = async (req, res) => {
             ]
         });
 
-        console.log('🔍 사용자 검색 완료:', user ? '기존 사용자 발견' : '새 사용자');
 
         // 탈퇴된 계정이 있는지 확인
-        console.log('🔍 탈퇴된 계정 검색 시작...');
         const deletedUser = await User.findOne({
             email: email,
             isDeleted: true
@@ -359,19 +343,10 @@ userController.googleLogin = async (req, res) => {
             }
 
             // 프로필 정보 업데이트 (프로필 사진만, name은 덮어쓰지 않음)
-            // if (name && user.name !== name) {
-            //     console.log('🔄 Google 로그인 시 name 업데이트:', { old: user.name, new: name });
-            //     user.name = name;
-            // }
-            if (nickname && user.nickname !== nickname) { // nickname 추가
-                console.log('🔄 Google 로그인 시 nickname 업데이트:', { old: user.nickname, new: nickname });
-                user.nickname = nickname;
-            }
             if (picture && user.profilePicture !== picture) {
                 user.profilePicture = picture;
             }
             await user.save();
-            console.log('✅ Google 로그인 후 사용자 정보:', { name: user.name, nickname: user.nickname });
         } else if (deletedUser) {
             // 탈퇴된 계정이 있는 경우
             return res.status(200).json({ 
@@ -435,9 +410,6 @@ userController.googleLogin = async (req, res) => {
             message: wasLoggedIn ? '다른 기기에서 로그인되어 기존 세션이 종료되었습니다.' : '로그인 성공'
         });
     } catch (error) {
-        console.error('구글 로그인 오류:', error.message);
-        console.error('구글 로그인 상세 에러:', error);
-        console.error('요청 데이터:', req.body);
         res.status(500).json({ status: 'fail', message: '서버 오류가 발생했습니다.', error: error.message });
     }
 };
@@ -468,7 +440,6 @@ userController.googleOAuth = async (req, res) => {
 
         if (!tokenResponse.ok) {
             const errorData = await tokenResponse.json();
-            console.error('Google OAuth 토큰 교환 실패:', errorData);
             throw new Error(`Google OAuth 토큰 교환 실패: ${errorData.error_description || errorData.error}`);
         }
 
@@ -590,8 +561,6 @@ userController.googleOAuth = async (req, res) => {
 
         res.status(200).json({ status: 'success', user, token });
     } catch (error) {
-        console.error('Google OAuth 오류:', error.message);
-        console.error('Google OAuth 상세 에러:', error);
         res.status(500).json({ status: 'fail', message: '서버 오류가 발생했습니다.', error: error.message });
     }
 };
@@ -651,7 +620,6 @@ userController.naverLogin = async (req, res) => {
             throw new Error('네이버 사용자 정보를 받을 수 없습니다.');
         }
 
-        console.log('네이버 프로필 데이터:', JSON.stringify(naverUser, null, 2));
         
                 const { id: naverId, email, nickname, name, profile_image, age, birthday, birthyear } = naverUser;
         
@@ -661,12 +629,10 @@ userController.naverLogin = async (req, res) => {
             const emailParts = email.split('@');
             const username = emailParts[0];
             naverEmail = `${username}@naver.com`;
-            console.log('이메일 변환:', email, '→', naverEmail);
         }
         
         // 기존 사용자 검색 (네이버 ID로만 검색)
         let user = await User.findOne({ naverId: naverId });
-        // console.log('네이버 ID로 검색 결과:', user ? '찾음' : '못찾음', 'naverId:', naverId);
         
         // 기존 계정과 연동하지 않고 항상 새로운 네이버 계정 생성
         // 이메일로 검색하는 부분 제거
@@ -692,7 +658,6 @@ userController.naverLogin = async (req, res) => {
             }
 
             // 기존 네이버 계정 정보 업데이트
-            console.log('기존 네이버 계정 업데이트:', '이메일:', user.email);
             
             // 프로필 정보만 업데이트
             if (nickname && nickname !== user.nickname) {
@@ -709,7 +674,6 @@ userController.naverLogin = async (req, res) => {
 
         } else {
             // 새 사용자 생성 - 필수 정보 없이 생성
-            console.log('새 네이버 사용자 생성:', '이메일:', naverEmail, '네이버ID:', naverId);
             const newUser = new User({
                 email: naverEmail,  // 변환된 네이버 이메일 사용
                 name: name || nickname,
@@ -735,7 +699,6 @@ userController.naverLogin = async (req, res) => {
             });
 
             user = await newUser.save();
-            console.log('새 사용자 생성 완료:', '저장된 이메일:', user.email);
         }
 
         // 중복 로그인 방지: 기존 세션 무효화
@@ -761,8 +724,6 @@ userController.naverLogin = async (req, res) => {
             message: wasLoggedIn ? '다른 기기에서 로그인되어 기존 세션이 종료되었습니다.' : '로그인 성공'
         });
     } catch (error) {
-        console.error('네이버 로그인 오류:', error.message);
-        console.error('네이버 로그인 상세 에러:', error);
         res.status(500).json({ status: 'fail', message: '서버 오류가 발생했습니다.', error: error.message });
     }
 };
@@ -787,7 +748,6 @@ userController.getUserInfo = async (req, res) => {
         const user = await User.findById(req.userId).select('-password'); // 비밀번호는 제외
         res.json(user);
     } catch (error) {
-        console.error(error.message);
         res.status(500).send('Server Error');
     }
 };
@@ -830,7 +790,6 @@ userController.getUsers = async (req, res) => {
 
         res.status(200).json({ status: 'success', data: filteredUsers });
     } catch (error) {
-        console.error('사용자 조회 실패:', error);
         res.status(400).json({ status: 'fail', error: error.message });
     }
 };
@@ -858,7 +817,6 @@ userController.getAllUsers = async (req, res) => {
 
         res.status(200).json({ status: 'success', data: users });
     } catch (error) {
-        console.error('전체 사용자 조회 실패:', error);
         res.status(400).json({ status: 'fail', error: error.message });
     }
 };
@@ -874,11 +832,6 @@ userController.updateUser = async (req, res) => {
         
         const { name, nickname, contactNumber, birthDate, gender, position, companyName, businessNumber, businessAddress, detailedAddress } = req.body;
         
-        // 디버깅: 받은 데이터 로그
-        console.log('📥 받은 데이터:', {
-            name, nickname, contactNumber, birthDate, gender, position, 
-            companyName, businessNumber, businessAddress, detailedAddress
-        });
         
         // 현재 사용자 정보 조회
         const currentUser = await User.findById(userId);
@@ -886,25 +839,12 @@ userController.updateUser = async (req, res) => {
             throw new Error("User not found");
         }
         
-        // 디버깅: 현재 사용자 정보 로그
-        console.log('👤 현재 사용자 정보:', {
-            name: currentUser.name,
-            nickname: currentUser.nickname,
-            email: currentUser.email,
-            businessNumber: currentUser.businessNumber
-        });
         
         // 사업자 번호가 변경되었는지 확인 (하이픈 제거 후 비교)
         const currentBusinessNumber = currentUser.businessNumber ? currentUser.businessNumber.replace(/[^0-9]/g, '') : '';
         const newBusinessNumber = businessNumber ? businessNumber.replace(/[^0-9]/g, '') : '';
         const businessNumberChanged = currentBusinessNumber !== newBusinessNumber;
         
-        // 디버깅: 사업자 번호 변경 확인 로그
-        console.log('🔍 사업자 번호 변경 확인:', {
-            currentBusinessNumber,
-            newBusinessNumber,
-            businessNumberChanged
-        });
         
         // 업데이트할 데이터 준비 (undefined 값은 제외)
         const updateData = {};
@@ -931,8 +871,6 @@ userController.updateUser = async (req, res) => {
         if (businessAddress !== undefined) updateData.businessAddress = businessAddress;
         if (detailedAddress !== undefined) updateData.detailedAddress = detailedAddress;
         
-        // 디버깅: 실제 업데이트되는 데이터 로그
-        console.log('🔄 업데이트할 데이터:', updateData);
         
         // 사업자 번호가 변경된 경우 레벨을 1로 초기화
         if (businessNumberChanged) {
@@ -945,20 +883,7 @@ userController.updateUser = async (req, res) => {
             throw new Error("User not found");
         }
 
-        // 디버깅: 업데이트 후 결과 로그
-        console.log('✅ 업데이트 후 결과:', {
-            name: user.name,
-            nickname: user.nickname,
-            email: user.email
-        });
         
-        // 디버깅: 실제 데이터베이스에서 다시 조회하여 확인
-        const verifyUser = await User.findById(userId);
-        console.log('🔍 데이터베이스 재확인:', {
-            name: verifyUser.name,
-            nickname: verifyUser.nickname,
-            email: verifyUser.email
-        });
 
         res.status(200).json({ 
             status: "success", 
@@ -967,7 +892,6 @@ userController.updateUser = async (req, res) => {
             message: businessNumberChanged ? "사용자 정보가 업데이트되었습니다." : "사용자 정보가 업데이트되었습니다."
         });
     } catch (error) {
-        console.error('사용자 정보 업데이트 오류:', error);
         res.status(400).json({ status: "fail", error: error.message });
     }
 };
@@ -1067,7 +991,6 @@ userController.updateLevel = async (req, res) => {
             isSpecialAdmin: isSpecialAdmin
         });
     } catch (error) {
-        console.error('레벨 업데이트 실패:', error);
         res.status(400).json({ status: 'fail', error: error.message });
     }
 };
@@ -1099,7 +1022,6 @@ userController.updateCoins = async (req, res) => {
             coins: user.coins
         });
     } catch (error) {
-        console.error('코인 업데이트 실패:', error);
         res.status(400).json({
             status: 'fail',
             message: 'Failed to update coins',
@@ -1235,7 +1157,6 @@ userController.checkBusinessNumberAvailability = async (req, res) => {
             isFirstEmployee: isFirstEmployee
         });
     } catch (error) {
-        console.error('사업자 등록번호 확인 오류:', error.message);
         res.status(500).json({ 
             status: 'error', 
             message: '서버 오류가 발생했습니다.',
@@ -1292,8 +1213,6 @@ userController.restoreDeletedAccount = async (req, res) => {
             token 
         });
     } catch (error) {
-        console.error('계정 복구 오류:', error.message);
-        console.error('계정 복구 상세 에러:', error);
         res.status(500).json({ status: 'fail', message: '서버 오류가 발생했습니다.', error: error.message });
     }
 };
@@ -1335,7 +1254,6 @@ userController.updatePremiumStatus = async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('프리미엄 상태 업데이트 오류:', error.message);
         res.status(500).json({ 
             status: 'error', 
             message: '서버 오류가 발생했습니다.' 
@@ -1404,7 +1322,6 @@ userController.updateSubscriptionStatus = async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('구독 상태 업데이트 오류:', error.message);
         res.status(500).json({ 
             status: 'error', 
             message: '서버 오류가 발생했습니다.' 
@@ -1428,7 +1345,6 @@ userController.logout = async (req, res) => {
             message: '로그아웃되었습니다.' 
         });
     } catch (error) {
-        console.error('로그아웃 오류:', error.message);
         res.status(500).json({ 
             status: 'fail', 
             message: '서버 오류가 발생했습니다.' 
@@ -1441,7 +1357,6 @@ userController.setInitialCompanyAdmin = async (req, res) => {
     try {
         const userId = req.user.id;
         
-        console.log('🎯 최초 회사 관리자 레벨 설정 요청:', userId);
         
         const user = await User.findById(userId);
         if (!user) {
@@ -1451,7 +1366,6 @@ userController.setInitialCompanyAdmin = async (req, res) => {
             });
         }
         
-        console.log('👤 업데이트 전 사용자 레벨:', user.level);
         
         // 레벨을 10으로 설정
         const updatedUser = await User.findByIdAndUpdate(
@@ -1460,11 +1374,6 @@ userController.setInitialCompanyAdmin = async (req, res) => {
             { new: true, runValidators: true }
         );
         
-        console.log('✅ 사용자 레벨 업데이트 완료:', {
-            name: updatedUser.name,
-            level: updatedUser.level,
-            email: updatedUser.email
-        });
         
         res.status(200).json({
             success: true,
@@ -1477,7 +1386,6 @@ userController.setInitialCompanyAdmin = async (req, res) => {
         });
         
     } catch (error) {
-        console.error('❌ 최초 회사 관리자 레벨 설정 오류:', error);
         res.status(500).json({
             success: false,
             message: '서버 오류가 발생했습니다.'

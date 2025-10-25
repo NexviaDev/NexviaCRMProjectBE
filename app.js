@@ -17,10 +17,6 @@ const CORS_ORIGIN = process.env.CORS_ORIGIN || FRONTEND_URL;
 const ENABLE_HTTPS_REDIRECT = (process.env.ENABLE_HTTPS_REDIRECT || 'true').toLowerCase() === 'true';
 
 // 개발 환경 로그
-if (NODE_ENV === 'development') {
-  console.log('🧪 개발 환경으로 실행 중입니다.');
-  console.log('🧪 테스트용 스케줄러가 1분마다 실행됩니다.');
-}
 
 const MONGODB_URI_PROD = process.env.MONGODB_URI_PROD;
 const app = express();
@@ -65,9 +61,6 @@ app.use((req, res, next) => {
   // 요청한 origin을 그대로 허용 (동적 origin 허용)
   const origin = req.headers.origin;
   
-  // 디버깅을 위한 로깅
-  console.log(`🌐 CORS 요청: ${req.method} ${req.path} from origin: ${origin}`);
-  
   // 허용할 도메인 목록
   const allowedOrigins = [
     'http://localhost:3000',
@@ -79,13 +72,7 @@ app.use((req, res, next) => {
   ];
   
   // origin이 허용 목록에 있거나 모든 origin 허용
-  if (allowedOrigins.includes(origin) || !origin) {
-    res.header('Access-Control-Allow-Origin', origin || '*');
-    console.log(`✅ CORS 허용: ${origin || '*'}`);
-  } else {
-    res.header('Access-Control-Allow-Origin', '*');
-    console.log(`⚠️ CORS 전체 허용: ${origin}`);
-  }
+
   
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Pragma, Expires, X-API-Key');
@@ -265,7 +252,6 @@ const runMigrations = async () => {
             }
         ]);
         
-        console.log('📊 직급별 사용자 수:');
         positionStats.forEach(stat => {
             console.log(`   ${stat._id || '미설정'}: ${stat.count}명`);
         });
@@ -288,7 +274,7 @@ const runMigrations = async () => {
             }
             console.log(`🎉 총 ${customersWithoutSchedules.length}명의 고객 schedules 정보가 업데이트되었습니다.`);
         } else {
-            console.log('✅ 모든 고객이 이미 schedules 필드를 가지고 있습니다.');
+
         }
         
         // 기존 일정 데이터를 기반으로 고객의 schedules 배열 업데이트
@@ -356,7 +342,6 @@ const runMigrations = async () => {
         }
         
         // 7. Schedule 모델의 relatedCustomers, relatedProperties 배열 필드 추가
-        console.log('🔄 Schedule 모델에 relatedCustomers, relatedProperties 배열 필드를 추가합니다...');
         
         try {
             // 기존 일정 데이터를 새로운 배열 필드로 마이그레이션
@@ -404,8 +389,6 @@ const runMigrations = async () => {
 // MongoDB 연결
 const connectDB = async () => {
     try {
-        console.log('🔄 MongoDB 연결 시도 중...');
-        console.log('🔍 연결 URI:', MONGODB_URI_PROD ? '설정됨' : '설정되지 않음');
         
         if (!MONGODB_URI_PROD) {
             throw new Error('MONGODB_URI_PROD 환경변수가 설정되지 않았습니다.');

@@ -4,7 +4,6 @@ const logger = require('../utils/logger');
 // 새 회사 등록 (최초 등록자 포함)
 const registerNewCompany = async (req, res) => {
     try {
-        console.log('📥 registerNewCompany 요청 받음:', req.body);
         
         const { 
             companyName, 
@@ -74,39 +73,22 @@ const registerNewCompany = async (req, res) => {
             isInitialRegistration: isInitialRegistration || false
         });
 
-        console.log('🏢 새 회사 생성:', newCompany);
         await newCompany.save();
-        console.log('✅ 회사 저장 완료:', newCompany._id);
 
         // 최초 등록자인 경우 사용자 정보 업데이트 로직 호출
         let userUpdateResult = null;
         if (isInitialRegistration && initialUserId) {
-            console.log('👤 사용자 업데이트 시작 - initialUserId:', initialUserId);
             try {
                 const User = require('../models/user.model');
                 const user = await User.findById(initialUserId);
-                console.log('👤 사용자 찾기 결과:', user ? '찾음' : '없음');
                 
                 if (user) {
                     // 사용자 레벨을 10으로 업데이트 (최초 등록자)
                     const originalLevel = user.level || 5;
-                    console.log('👤 업데이트 전 사용자 상태:', {
-                        name: user.name,
-                        level: user.level,
-                        companyId: user.companyId,
-                        companyName: user.companyName
-                    });
                     
                     user.level = 10;
                     user.companyName = companyName.trim();
                     user.companyId = newCompany._id.toString();
-                    
-                    console.log('👤 업데이트 후 사용자 상태:', {
-                        name: user.name,
-                        level: user.level,
-                        companyId: user.companyId,
-                        companyName: user.companyName
-                    });
                     
                     try {
                         // findByIdAndUpdate를 사용하여 직접 업데이트
@@ -122,13 +104,6 @@ const registerNewCompany = async (req, res) => {
                                 runValidators: true  // 스키마 검증 실행
                             }
                         );
-                        
-                        console.log('✅ 사용자 업데이트 성공:', {
-                            name: updatedUser.name,
-                            level: updatedUser.level,
-                            companyId: updatedUser.companyId,
-                            companyName: updatedUser.companyName
-                        });
                         
                         userUpdateResult = {
                             updated: true,

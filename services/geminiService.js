@@ -17,18 +17,12 @@ class GeminiService {
      */
     async generateText(prompt, options = {}) {
         try {
-            console.log('=== GEMINI API 호출 시작 (최적화) ===');
-            console.log('API 키:', this.apiKey ? `${this.apiKey.substring(0, 10)}...` : '없음');
-            console.log('프롬프트:', prompt.substring(0, 100) + '...');
           
             // API 키 검증
             if (!this.apiKey) {
-                console.log('API 키가 없음');
                 throw new Error('Gemini API 키가 설정되지 않았습니다. 환경변수를 확인하세요.');
             }
             
-            console.log('API 키 길이:', this.apiKey.length);
-            console.log('API 키 시작:', this.apiKey.substring(0, 20));
             
             const requestBody = {
                 contents: [{
@@ -45,7 +39,6 @@ class GeminiService {
                 }
             };
 
-            console.log('요청 본문:', JSON.stringify(requestBody, null, 2));
 
             // 간단한 API 호출 (타임아웃 최적화)
             const response = await axios.post(
@@ -59,60 +52,42 @@ class GeminiService {
                 }
             );
 
-            console.log('응답 상태:', response.status);
 
-                    console.log('전체 응답 데이터:', JSON.stringify(response.data, null, 2));
                     
                     if (response.data && response.data.candidates && response.data.candidates[0]) {
                         const candidate = response.data.candidates[0];
-                        console.log('후보 응답:', JSON.stringify(candidate, null, 2));
                         
                         // 안전장치 확인
                         if (candidate.finishReason === 'SAFETY') {
-                            console.log('안전장치로 인한 차단');
                             return '안전장치로 인해 응답이 차단되었습니다. 다른 방식으로 질문해주세요.';
                         }
                         
                         // content가 없는 경우 처리
                         if (!candidate.content) {
-                            console.log('content가 없음, finishReason:', candidate.finishReason);
                             return '일정 정보를 바탕으로 한 맞춤형 조언을 생성했습니다. 각 일정을 성공적으로 완료하시길 바랍니다.';
                         }
                         
                         const parts = candidate.content?.parts || [];
-                        console.log('응답 부분들:', JSON.stringify(parts, null, 2));
                         
                         const result = parts.map(p => p.text || '').join('\n').trim();
                         
-                        console.log('생성된 텍스트 길이:', result.length);
-                        console.log('생성된 텍스트 내용:', result);
                         
                         if (result.length > 0) {
                             return result;
                         } else {
                             // 빈 응답일 때 기본 메시지 반환
-                            console.log('빈 응답 감지, 기본 메시지 반환');
                             return '일정 정보를 바탕으로 한 맞춤형 조언을 생성했습니다. 각 일정을 성공적으로 완료하시길 바랍니다.';
                         }
                     } else {
-                        console.log('응답 형식 오류:', response.data);
                         throw new Error('GEMINI API 응답 형식이 올바르지 않습니다.');
                     }
         } catch (error) {
-            console.error('=== GEMINI API 호출 오류 ===');
-            console.error('오류 타입:', error.constructor.name);
-            console.error('오류 메시지:', error.message);
             
             if (error.response) {
-                console.error('응답 상태:', error.response.status);
-                console.error('응답 헤더:', error.response.headers);
-                console.error('응답 데이터:', error.response.data);
                 throw new Error(`GEMINI API 오류 (${error.response.status}): ${JSON.stringify(error.response.data)}`);
             } else if (error.request) {
-                console.error('요청 정보:', error.request);
                 throw new Error('GEMINI API 서버에 연결할 수 없습니다.');
             } else {
-                console.error('기타 오류:', error);
                 throw new Error(`GEMINI API 호출 중 오류가 발생했습니다: ${error.message}`);
             }
         }

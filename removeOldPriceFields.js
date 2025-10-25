@@ -8,7 +8,7 @@ const connectDB = async () => {
             useNewUrlParser: true,
             useUnifiedTopology: true,
         });
-        console.log('MongoDB 연결 성공');
+('MongoDB 연결 성공');
     } catch (error) {
         console.error('MongoDB 연결 실패:', error);
         process.exit(1);
@@ -18,7 +18,7 @@ const connectDB = async () => {
 // 기존 price, deposit 필드 제거 함수
 const removeOldPriceFields = async () => {
     try {
-        console.log('기존 price, deposit 필드 제거 시작...');
+('기존 price, deposit 필드 제거 시작...');
         
         // price 또는 deposit 필드가 있는 매물들 조회
         const properties = await Property.find({
@@ -29,7 +29,7 @@ const removeOldPriceFields = async () => {
             isDeleted: false
         });
 
-        console.log(`제거 대상 매물 수: ${properties.length}개`);
+(`제거 대상 매물 수: ${properties.length}개`);
 
         let removedCount = 0;
         let errorCount = 0;
@@ -44,7 +44,7 @@ const removeOldPriceFields = async () => {
                     }
                 });
 
-                console.log(`✅ 필드 제거 완료: ${property.title}`);
+(`✅ 필드 제거 완료: ${property.title}`);
                 removedCount++;
 
             } catch (error) {
@@ -53,10 +53,10 @@ const removeOldPriceFields = async () => {
             }
         }
 
-        console.log('\n=== 필드 제거 완료 ===');
-        console.log(`성공: ${removedCount}개`);
-        console.log(`실패: ${errorCount}개`);
-        console.log(`총 처리: ${removedCount + errorCount}개`);
+('\n=== 필드 제거 완료 ===');
+(`성공: ${removedCount}개`);
+(`실패: ${errorCount}개`);
+(`총 처리: ${removedCount + errorCount}개`);
 
     } catch (error) {
         console.error('필드 제거 중 오류 발생:', error);
@@ -68,7 +68,7 @@ const runMigration = async () => {
     await connectDB();
     await removeOldPriceFields();
     
-    console.log('\n기존 price, deposit 필드 제거가 완료되었습니다.');
+('\n기존 price, deposit 필드 제거가 완료되었습니다.');
     process.exit(0);
 };
 

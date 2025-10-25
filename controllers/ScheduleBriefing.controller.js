@@ -18,9 +18,6 @@ exports.generateWeeklyBriefing = async (req, res) => {
         endOfWeek.setDate(startOfWeek.getDate() + 6); // 토요일
         endOfWeek.setHours(23, 59, 59, 999);
 
-        console.log('=== 금주 브리핑 생성 ===');
-        console.log('사용자:', user.name);
-        console.log('조회 기간:', startOfWeek.toISOString(), '~', endOfWeek.toISOString());
 
         // 이번 주 일정 조회
         let query = {
@@ -44,7 +41,6 @@ exports.generateWeeklyBriefing = async (req, res) => {
             .populate('relatedContracts', 'contractNumber type status')
             .sort({ date: 1, time: 1 });
 
-        console.log('조회된 일정 수:', schedules.length);
 
         if (schedules.length === 0) {
             return res.json({
@@ -73,7 +69,6 @@ exports.generateWeeklyBriefing = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('금주 브리핑 생성 오류:', error);
         res.status(500).json({
             success: false,
             message: '브리핑 생성 중 오류가 발생했습니다.',
@@ -113,21 +108,20 @@ async function generateQuickBriefing(schedules, userName) {
         
         const prompt = `${userName}님의 이번 주 업무 일정 완전한 정보: ${scheduleDetails}. 이 모든 정보를 바탕으로 일정들을 성공적으로 수행하기 위한 실무 조언을 상세히 해주세요.`;
 
-        // 백그라운드에서 처리하여 타임아웃 방지
+        // 백그라운드에서 처리하여 타임아웃 방지 (즉시 응답)
         return new Promise((resolve) => {
-            setTimeout(async () => {
+            // 즉시 응답을 위해 setTimeout 없이 바로 처리
+            setImmediate(async () => {
                 try {
                     const briefingText = await geminiService.generateText(prompt);
                     resolve(briefingText);
                 } catch (error) {
-                    console.error('금주 브리핑 생성 오류:', error);
                     resolve(`${userName}님의 이번 주 일정이 ${schedules.length}개 있습니다. 각 일정을 성공적으로 완료하시길 바랍니다.`);
                 }
-            }, 100); // 즉시 응답을 위한 짧은 지연
+            });
         });
         
     } catch (error) {
-        console.error('금주 브리핑 생성 오류:', error);
         return `${userName}님의 이번 주 일정이 ${schedules.length}개 있습니다. 각 일정을 성공적으로 완료하시길 바랍니다.`;
     }
 }
@@ -162,21 +156,20 @@ async function generateDailyBriefing(schedules, userName, targetDate) {
         
         const prompt = `${userName}님의 오늘 업무 일정 완전한 정보: ${scheduleDetails}. 이 모든 정보를 바탕으로 일정들을 성공적으로 수행하기 위한 실무 조언을 상세히 해주세요.`;
 
-        // 백그라운드에서 처리하여 타임아웃 방지
+        // 백그라운드에서 처리하여 타임아웃 방지 (즉시 응답)
         return new Promise((resolve) => {
-            setTimeout(async () => {
+            // 즉시 응답을 위해 setTimeout 없이 바로 처리
+            setImmediate(async () => {
                 try {
                     const briefingText = await geminiService.generateText(prompt);
                     resolve(briefingText);
                 } catch (error) {
-                    console.error('일일 브리핑 생성 오류:', error);
                     resolve(`${userName}님의 오늘 일정이 ${schedules.length}개 있습니다. 성공적인 하루 되세요!`);
                 }
-            }, 100); // 즉시 응답을 위한 짧은 지연
+            });
         });
         
     } catch (error) {
-        console.error('일일 브리핑 생성 오류:', error);
         return `${userName}님의 오늘 일정이 ${schedules.length}개 있습니다. 성공적인 하루 되세요!`;
     }
 }
@@ -243,7 +236,6 @@ exports.generateMeetingMessage = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('만남 메시지 추천 생성 오류:', error);
         res.status(500).json({
             success: false,
             message: '메시지 추천 생성 중 오류가 발생했습니다.',
@@ -318,7 +310,6 @@ exports.generateScheduleAnalysis = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('일정 분석 생성 오류:', error);
         res.status(500).json({
             success: false,
             message: '일정 분석 생성 중 오류가 발생했습니다.',
@@ -341,9 +332,6 @@ exports.generateDailyBriefing = async (req, res) => {
         const endOfDay = new Date(targetDate);
         endOfDay.setHours(23, 59, 59, 999);
 
-        console.log('=== 일일 브리핑 생성 ===');
-        console.log('사용자:', user.name);
-        console.log('조회 날짜:', targetDate.toISOString());
 
         // 해당 날짜의 일정 조회
         let query = {
@@ -367,7 +355,6 @@ exports.generateDailyBriefing = async (req, res) => {
             .populate('relatedContracts', 'contractNumber type status')
             .sort({ time: 1 });
 
-        console.log('조회된 일정 수:', schedules.length);
 
         if (schedules.length === 0) {
             return res.json({
@@ -393,7 +380,6 @@ exports.generateDailyBriefing = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('일일 브리핑 생성 오류:', error);
         res.status(500).json({
             success: false,
             message: '일일 브리핑 생성 중 오류가 발생했습니다.',

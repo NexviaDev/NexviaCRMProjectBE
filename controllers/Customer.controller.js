@@ -271,8 +271,6 @@ exports.getCustomer = async (req, res) => {
 exports.createCustomer = async (req, res) => {
     try {
         const user = req.user;
-        console.log('고객 등록 요청 받음:', req.body);
-        console.log('사용자 정보:', user ? { id: user._id, name: user.name, businessNumber: user.businessNumber } : '사용자 없음');
 
         // 금액 필드를 숫자로 변환하는 함수
         const convertToNumber = (value) => {
@@ -291,13 +289,6 @@ exports.createCustomer = async (req, res) => {
             // 금액 필드들을 숫자로 변환
             budget: convertToNumber(req.body.budget)
         };
-
-        console.log('저장할 고객 데이터:', {
-            name: customerData.name,
-            publisher: customerData.publisher,
-            byCompanyNumber: customerData.byCompanyNumber,
-            businessNumber: customerData.businessNumber
-        });
 
         // buyPriceRanges 처리
         if (req.body.buyPriceRanges) {
@@ -952,53 +943,41 @@ exports.bulkCreateFromCSV = async (req, res) => {
 // 고객 일괄 삭제
 exports.bulkDeleteCustomers = async (req, res) => {
     try {
-        console.log('=== 일괄 삭제 요청 시작 ===');
-        console.log('요청 본문:', JSON.stringify(req.body, null, 2));
-        console.log('사용자 정보:', JSON.stringify(req.user, null, 2));
 
         const { customerIds } = req.body;
         const user = req.user;
 
         // 기본 검증
         if (!customerIds || !Array.isArray(customerIds) || customerIds.length === 0) {
-            console.log('❌ 고객 ID가 없거나 잘못된 형식');
             return res.status(400).json({
                 success: false,
                 message: '삭제할 고객을 선택해주세요.'
             });
         }
 
-        console.log(`📊 삭제 요청된 고객 수: ${customerIds.length}`);
 
         // 삭제 권한 확인을 위한 쿼리 구성 (isDeleted 조건 제거)
         let deleteQuery = {
             _id: { $in: customerIds }
         };
 
-        console.log('초기 삭제 쿼리:', deleteQuery);
 
         // 사용자 권한에 따른 삭제 권한 확인
         if (user.level < 11) {
             if (user.businessNumber) {
                 // 사업자번호가 있는 경우: 같은 사업자번호의 고객만 삭제 가능
-                console.log('사업자번호 기반 권한 확인:', user.businessNumber);
                 const usersWithSameBusiness = await User.find({ businessNumber: user.businessNumber }).select('_id');
                 deleteQuery.publisher = { $in: usersWithSameBusiness };
-                console.log('같은 사업자번호 사용자들:', usersWithSameBusiness);
             } else {
                 // 그 외: 자신이 등록한 고객만 삭제 가능
-                console.log('개인 사용자 권한 확인:', user._id);
                 deleteQuery.publisher = user._id;
             }
         } else {
-            console.log('관리자 권한으로 모든 고객 삭제 가능');
         }
 
-        console.log('최종 삭제 쿼리:', deleteQuery);
 
         // 삭제 가능한 고객들 조회
         const customersToDelete = await Customer.find(deleteQuery);
-        console.log(`삭제 가능한 고객 수: ${customersToDelete.length}`);
         
         // 삭제될 고객들의 상세 정보 저장 (로깅용)
         const deletedCustomersInfo = customersToDelete.map(customer => ({
@@ -1010,15 +989,8 @@ exports.bulkDeleteCustomers = async (req, res) => {
         
         // 디버깅: 모든 고객 조회 (삭제 상태 포함)
         const allCustomers = await Customer.find({ _id: { $in: customerIds } });
-        console.log('모든 고객 상태:', allCustomers.map(c => ({
-            id: c._id,
-            name: c.name,
-            isDeleted: c.isDeleted,
-            deletedAt: c.deletedAt
-        })));
         
         if (customersToDelete.length === 0) {
-            console.log('삭제 가능한 고객이 없음');
             return res.status(400).json({
                 success: false,
                 message: '삭제할 수 있는 고객이 없습니다. 권한을 확인해주세요.'
@@ -1027,7 +999,6 @@ exports.bulkDeleteCustomers = async (req, res) => {
 
         // 실제 삭제할 고객 ID들
         const deletableCustomerIds = customersToDelete.map(customer => customer._id);
-        console.log(`실제 삭제할 고객 ID 수: ${deletableCustomerIds.length}`);
 
         // 배치 크기 설정 (한 번에 처리할 고객 수)
         const batchSize = 50;
@@ -1044,7 +1015,6 @@ exports.bulkDeleteCustomers = async (req, res) => {
         // 배치별로 처리
         for (let i = 0; i < batches.length; i++) {
             const batch = batches[i];
-            console.log(`배치 ${i + 1}/${batches.length} 처리 중... (${batch.length}명)`);
 
             try {
                 // 1. 고객들을 실제로 삭제 (MongoDB에서 완전 제거)
@@ -1078,26 +1048,10 @@ exports.bulkDeleteCustomers = async (req, res) => {
                 totalSchedulesDeleted += scheduleDeleteResult.deletedCount;
                 totalSMSDeleted += smsDeleteResult.deletedCount;
                 totalPropertiesUpdated += propertyUpdateResult.modifiedCount;
-
-                console.log(`배치 ${i + 1} 완료:`, {
-                    customers: customerDeleteResult.deletedCount,
-                    schedules: scheduleDeleteResult.deletedCount,
-                    sms: smsDeleteResult.deletedCount,
-                    properties: propertyUpdateResult.modifiedCount
-                });
-
             } catch (error) {
-                console.error(`배치 ${i + 1} 처리 중 오류:`, error);
                 // 개별 배치 실패 시에도 계속 진행
             }
         }
-
-        console.log('전체 일괄 삭제 결과:', {
-            totalCustomers: totalCustomersUpdated,
-            totalSchedules: totalSchedulesDeleted,
-            totalSMS: totalSMSDeleted,
-            totalProperties: totalPropertiesUpdated
-        });
 
         // 활동기록 로깅 (일괄 삭제)
         await logCustomerActivity(

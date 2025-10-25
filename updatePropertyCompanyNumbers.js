@@ -9,7 +9,7 @@ const connectDB = async () => {
             useNewUrlParser: true,
             useUnifiedTopology: true,
         });
-        console.log('MongoDB 연결 성공');
+('MongoDB 연결 성공');
     } catch (error) {
         console.error('MongoDB 연결 실패:', error);
         process.exit(1);
@@ -19,13 +19,13 @@ const connectDB = async () => {
 // 매물의 byCompanyNumber 업데이트
 const updatePropertyCompanyNumbers = async () => {
     try {
-        console.log('매물의 사업자 번호 업데이트 시작...');
+('매물의 사업자 번호 업데이트 시작...');
         
         // 모든 매물 조회 (publisher 정보 포함)
         const properties = await Property.find({ isDeleted: false })
             .populate('publisher', 'businessNumber');
         
-        console.log(`총 ${properties.length}개의 매물을 처리합니다.`);
+(`총 ${properties.length}개의 매물을 처리합니다.`);
         
         let updatedCount = 0;
         let errorCount = 0;
@@ -39,12 +39,12 @@ const updatePropertyCompanyNumbers = async () => {
                             byCompanyNumber: property.publisher.businessNumber
                         });
                         updatedCount++;
-                        console.log(`매물 "${property.title}" 업데이트 완료: ${property.publisher.businessNumber}`);
+(`매물 "${property.title}" 업데이트 완료: ${property.publisher.businessNumber}`);
                     } else {
-                        console.log(`매물 "${property.title}" 이미 최신 상태: ${property.byCompanyNumber}`);
+(`매물 "${property.title}" 이미 최신 상태: ${property.byCompanyNumber}`);
                     }
                 } else {
-                    console.log(`매물 "${property.title}" - publisher 정보 없음`);
+(`매물 "${property.title}" - publisher 정보 없음`);
                     errorCount++;
                 }
             } catch (error) {
@@ -53,10 +53,10 @@ const updatePropertyCompanyNumbers = async () => {
             }
         }
         
-        console.log(`\n업데이트 완료:`);
-        console.log(`- 성공: ${updatedCount}개`);
-        console.log(`- 실패: ${errorCount}개`);
-        console.log(`- 총 처리: ${properties.length}개`);
+(`\n업데이트 완료:`);
+(`- 성공: ${updatedCount}개`);
+(`- 실패: ${errorCount}개`);
+(`- 총 처리: ${properties.length}개`);
         
     } catch (error) {
         console.error('매물 사업자 번호 업데이트 중 오류:', error);
@@ -68,7 +68,7 @@ const runMigration = async () => {
     await connectDB();
     await updatePropertyCompanyNumbers();
     await mongoose.connection.close();
-    console.log('마이그레이션 완료');
+('마이그레이션 완료');
 };
 
 // 직접 실행 시에만 마이그레이션 실행

@@ -104,16 +104,11 @@ const getActivityLogs = async (req, res) => {
         // 쿼리 조건 구성
         let query = {};
         
-        console.log('🔍 ActivityLog Query Debug:');
-        console.log('- companyOnly:', companyOnly);
-        console.log('- currentUser.businessNumber:', currentUser.businessNumber);
-        console.log('- req.user.id:', req.user.id);
         
         // 개인 활동기록만 보기 옵션이 활성화된 경우 (companyOnly === 'false')
         if (companyOnly === 'false') {
             // 자신의 로그만 보기
             query.userId = req.user.id;
-            console.log('✅ 개인 활동기록만 보기 모드 - userId 필터 적용');
         } else {
             // 회사 직원 전체 보기 (companyOnly === 'true' 또는 기본값)
             if (currentUser.businessNumber) {
@@ -126,15 +121,9 @@ const getActivityLogs = async (req, res) => {
                     { businessNumber: currentUser.businessNumber },
                     { userId: { $in: companyUserIds } }
                 ];
-
-                console.log('✅ 회사 직원 전체 보기 모드 - OR 필터 적용:', {
-                    businessNumber: currentUser.businessNumber,
-                    companyUserCount: companyUsers.length
-                });
             } else {
                 // 사업자등록번호가 없는 경우 자신의 로그만 보기
                 query.userId = req.user.id;
-                console.log('⚠️ 사업자등록번호 없음 - userId 필터 적용');
             }
         }
 
@@ -184,8 +173,6 @@ const getActivityLogs = async (req, res) => {
         sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
 
         // 활동 로그 조회
-        console.log('ActivityLog Query:', query);
-        console.log('User ID:', req.user.id);
         
         // 최신순 상위 150개까지만 전체 데이터셋에서 허용
         // 먼저 상한 내 ID만 가져와 이후 페이지네이션 수행 (불필요한 스캔 방지)
@@ -207,10 +194,6 @@ const getActivityLogs = async (req, res) => {
             Promise.resolve(idList.length)
         ]);
 
-        console.log('📊 ActivityLog Query Results:');
-        console.log('- Found activities:', activities.length);
-        console.log('- Total count:', total);
-        console.log('- Final query:', JSON.stringify(query, null, 2));
 
         // 상대적 시간 추가
         const activitiesWithRelativeTime = activities.map(activity => ({

@@ -10,7 +10,6 @@ const logSubscriptionHistory = async (data) => {
   try {
     const history = new SubscriptionHistory(data);
     await history.save();
-    console.log('✅ [Scheduler] 히스토리 기록 완료:', data.action);
   } catch (error) {
     console.error('❌ [Scheduler] 히스토리 기록 실패:', error);
   }
@@ -50,7 +49,6 @@ class SubscriptionScheduler {
     // 🧪 테스트용: 1분마다 정기결제 실행 (개발/테스트 환경에서만 사용)
     if (process.env.NODE_ENV === 'development') {
       cron.schedule('*/1 * * * *', async () => {
-        console.log('🧪 [테스트] 1분마다 정기결제 스케줄러 실행 시작');
         await this.processMonthlySubscriptions();
       }, {
         scheduled: true,
@@ -246,7 +244,6 @@ class SubscriptionScheduler {
           }
         });
         
-        console.log('✅ [Scheduler] 자동 결제 성공 처리 완료');
       }
 
     } catch (error) {
@@ -316,7 +313,6 @@ class SubscriptionScheduler {
           });
         }
         
-        console.log('✅ [Scheduler] 결제 실패 처리 및 히스토리 기록 완료');
       }
 
       // 사용자에게 알림 (실제 구현에서는 이메일, SMS 등)
@@ -372,7 +368,6 @@ class SubscriptionScheduler {
         gracePeriodEndDate: { $lte: now }
       });
 
-      console.log(`📅 유예 기간 만료된 구독 ${expiredSubscriptions.length}개 처리 시작`);
 
       for (const subscription of expiredSubscriptions) {
         try {
@@ -384,20 +379,17 @@ class SubscriptionScheduler {
             user.subscriptionEndDate = subscription.gracePeriodEndDate;
             await user.save();
             
-            console.log(`✅ 사용자 ${user.email} 프리미엄 상태 해제 완료`);
           }
 
           // 구독 상태를 만료로 변경
           subscription.status = 'expired';
           await subscription.save();
           
-          console.log(`✅ 구독 ${subscription._id} 만료 처리 완료`);
         } catch (error) {
           console.error(`❌ 구독 ${subscription._id} 만료 처리 실패:`, error.message);
         }
       }
 
-      console.log(`📅 유예 기간 만료 처리 완료: ${expiredSubscriptions.length}개`);
     } catch (error) {
       console.error('❌ 유예 기간 만료 처리 중 오류 발생:', error);
     }
@@ -406,7 +398,6 @@ class SubscriptionScheduler {
   // 무료 체험 종료 처리
   async processExpiredFreeTrials() {
     try {
-      console.log('🎁 무료 체험 종료 처리 시작...');
       
       const now = new Date();
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -421,11 +412,9 @@ class SubscriptionScheduler {
         subscriptionStatus: 'active'
       });
 
-      console.log(`🎁 무료 체험 종료 대상: ${expiredTrialUsers.length}명`);
 
       for (const user of expiredTrialUsers) {
         try {
-          console.log(`🎁 무료 체험 종료 처리: ${user.name} (${user.email})`);
 
           // 사용자 상태를 무료 회원으로 변경
           user.subscriptionStatus = 'inactive';
@@ -445,13 +434,11 @@ class SubscriptionScheduler {
             await trialSubscription.save();
           }
 
-          console.log(`✅ 무료 체험 종료 처리 완료: ${user.name}`);
         } catch (userError) {
           console.error(`❌ 무료 체험 종료 처리 실패: ${user.name}`, userError);
         }
       }
 
-      console.log(`🎁 무료 체험 종료 처리 완료: ${expiredTrialUsers.length}명`);
     } catch (error) {
       console.error('❌ 무료 체험 종료 처리 중 오류 발생:', error);
     }

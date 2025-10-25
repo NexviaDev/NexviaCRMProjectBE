@@ -600,10 +600,8 @@ class SubscriptionController {
   // 빌링키 발급
   async issueBillingKey(req, res) {
     try {
-      console.log('🚀 [issueBillingKey] 빌링키 발급 시작');
       const { customerKey, authKey, billingCycle = 'monthly' } = req.body;
       
-      console.log('📦 요청 데이터:', { customerKey, billingCycle });
 
       // 토스페이먼츠 API 호출하여 빌링키 발급
       const response = await axios.post('https://api.tosspayments.com/v1/billing/authorizations/issue', {
@@ -635,7 +633,6 @@ class SubscriptionController {
       
       // 구독 정보가 없으면 자동 생성
       if (!subscription) {
-        console.log('🔍 [issueBillingKey] 구독 정보가 없습니다. 자동 생성 시작...');
         
         // 다음 결제일 계산 (월간 결제로 고정)
         const nextBillingDate = new Date();
@@ -657,13 +654,11 @@ class SubscriptionController {
         });
         
         await subscription.save();
-        console.log('✅ [issueBillingKey] 새 구독 정보 생성 완료:', subscription);
       }
       
       // 빌링키 저장
       subscription.billingKey = result.billingKey;
       await subscription.save();
-      console.log('✅ [issueBillingKey] 빌링키 저장 완료:', result.billingKey);
 
       // 사용자 정보 업데이트
       if (user) {
@@ -673,7 +668,6 @@ class SubscriptionController {
         user.subscriptionStartDate = subscription.startDate;
         user.subscriptionEndDate = subscription.nextBillingDate;
         await user.save();
-        console.log('✅ [issueBillingKey] 사용자 정보 업데이트 완료');
       }
 
       res.status(200).json({
@@ -701,19 +695,12 @@ class SubscriptionController {
   // 정기결제 실행
   async confirmBilling(req, res) {
     try {
-      console.log('🚀 [Subscription.controller.js] confirmBilling 함수 시작');
-      console.log('📦 요청 바디:', req.body);
-      console.log('🔑 요청 헤더:', req.headers);
-      console.log('--- 정기결제 처리 시작 ---');
       
       const { customerKey, amount, orderId, orderName, customerEmail, customerName } = req.body;
       
-      console.log('🔍 요청 데이터 파싱 완료:', { customerKey, amount, orderId, orderName, customerEmail, customerName });
 
       // 사용자 정보 조회하여 첫 구독자인지 확인
-      console.log('🔍 사용자 정보 조회 시작...');
       const user = await User.findById(customerKey);
-      console.log('🔍 사용자 정보:', user);
       
       if (!user) {
         return res.status(404).json({
@@ -723,24 +710,19 @@ class SubscriptionController {
       }
 
       const isFirstTimeSubscriber = !user.freeTrialUsed;
-      console.log('🎁 첫 구독자 여부:', isFirstTimeSubscriber);
 
       // 구독 정보 조회
-      console.log('🔍 구독 정보 조회 시작...');
-      console.log('🔍 조회 조건:', { customerId: customerKey });
 
       let subscription = await Subscription.findOne({ 
         customerId: customerKey,
         status: { $ne: 'cancelled' }
       });
-      console.log('🔍 구독 정보 조회 결과:', subscription);
 
       let finalSubscription = subscription;
       let actualPaymentAmount = amount; // 기본값 설정
       
       // 구독 정보가 없으면 자동 생성
       if (!subscription) {
-        console.log('🔍 구독 정보가 없습니다. 자동 생성 시작...');
         
         // 첫 구독자인 경우 첫 달 무료로 설정 (토스페이먼츠 테스트 환경에서는 최소 100원)
         const finalAmount = isFirstTimeSubscriber ? 100 : amount;
@@ -766,7 +748,6 @@ class SubscriptionController {
         });
         
         await newSubscription.save();
-        console.log('✅ 새 구독 정보 생성 완료:', newSubscription);
         finalSubscription = newSubscription;
         
         // 사용자 무료 체험 정보 업데이트
@@ -777,21 +758,14 @@ class SubscriptionController {
           user.isPremium = true;
           user.subscriptionStatus = 'active';
           await user.save();
-          console.log('🎉 첫 구독자 무료 체험 설정 완료');
         }
       } else {
         // 기존 구독이 있는 경우에도 첫 구독자인지 확인하여 실제 결제 금액 조정
         // 토스페이먼츠 테스트 환경에서는 최소 결제 금액(100원) 필요
         actualPaymentAmount = isFirstTimeSubscriber ? 100 : finalSubscription.price;
-        console.log('🔍 기존 구독 확인 - 실제 결제 금액:', { 
-          isFirstTimeSubscriber, 
-          subscriptionPrice: finalSubscription.price, 
-          actualPaymentAmount 
-        });
       }
 
       if (!finalSubscription.billingKey) {
-        console.log('🔍 빌링키가 없습니다. 빌링키 발급이 필요합니다.');
         return res.status(400).json({
           success: false,
           message: '빌링키가 발급되지 않았습니다. 먼저 빌링키를 발급해주세요.'
@@ -799,10 +773,6 @@ class SubscriptionController {
       }
 
       // 토스페이먼츠 API 호출하여 정기결제 실행
-      console.log('🔑 토스페이먼츠 API 호출 시작...');
-      console.log('🔑 빌링키:', finalSubscription.billingKey);
-      console.log('🔑 구독 가격:', finalSubscription.price);
-      console.log('💰 실제 결제 금액:', actualPaymentAmount);
       
       // 토스페이먼츠에서 실제로 결제할 금액 전달
       const response = await axios.post(`https://api.tosspayments.com/v1/billing/${finalSubscription.billingKey}`, {
@@ -830,7 +800,6 @@ class SubscriptionController {
       }
 
       // 결제 성공 시 구독 정보 업데이트  
-      console.log('✅ 결제 성공! 구독 정보 업데이트 시작...');
       
       // 다음 결제일을 올바르게 계산 (현재 날짜 기준 1개월 후)
       const now = new Date();
@@ -839,35 +808,25 @@ class SubscriptionController {
       finalSubscription.nextBillingDate = nextBilling;
       
       await finalSubscription.save();
-      console.log('✅ 구독 정보 업데이트 완료:', finalSubscription);
 
       // 결제 성공 시 사용자 정보 업데이트 (isPremium, subscriptionStatus)
       try {
-        console.log('🔍 사용자 정보 업데이트 시작...');
         
         // customerKey가 실제 사용자 ID인지 확인
         let userId = customerKey;
         
         // customerKey가 실제 사용자 ID가 아닌 경우, 이메일로 사용자 찾기
         if (!userId.match(/^[0-9a-fA-F]{24}$/)) {
-          console.log('🔍 customerKey가 ObjectId 형식이 아님. 이메일로 사용자 찾기 시도...');
           const userByEmail = await User.findOne({ email: customerEmail });
           if (userByEmail) {
             userId = userByEmail._id;
-            console.log('✅ 이메일로 사용자 찾기 성공:', userId);
           } else {
-            console.log('❌ 이메일로 사용자를 찾을 수 없음:', customerEmail);
           }
         }
         
         if (userId && userId.match(/^[0-9a-fA-F]{24}$/)) {
           const user = await User.findById(userId);
           if (user) {
-            console.log('🔍 기존 사용자 정보:', {
-              email: user.email,
-              isPremium: user.isPremium,
-              subscriptionStatus: user.subscriptionStatus
-            });
             
             // 구독 정보 업데이트
             user.isPremium = true;
@@ -883,14 +842,6 @@ class SubscriptionController {
             user.lastPaymentDate = new Date();
             
             await user.save();
-            
-            console.log('✅ 사용자 구독 정보 업데이트 완료:', {
-              email: user.email,
-              isPremium: user.isPremium,
-              subscriptionStatus: user.subscriptionStatus,
-              subscriptionStartDate: user.subscriptionStartDate,
-              nextPaymentDate: user.nextPaymentDate
-            });
 
             // 결제 성공 히스토리 기록
             const historyDescription = isFirstTimeSubscriber 
@@ -918,7 +869,6 @@ class SubscriptionController {
             console.error('❌ 사용자를 찾을 수 없음:', userId);
           }
         } else {
-          console.log('❌ 유효한 사용자 ID를 찾을 수 없음');
         }
       } catch (userUpdateError) {
         console.error('❌ 사용자 정보 업데이트 실패:', userUpdateError);
@@ -967,7 +917,6 @@ class SubscriptionController {
               isFirstTimeSubscriber: isFirstTimeSubscriber
             }
           });
-          console.log('✅ 결제 실패 히스토리 기록 완료');
         }
       } catch (historyError) {
         console.error('히스토리 기록 실패:', historyError);
@@ -984,11 +933,9 @@ class SubscriptionController {
   // 결제 승인
   async confirmPayment(req, res) {
     try {
-      console.log('🚀 결제 승인 요청 시작:', { paymentKey, orderId, amount });
       const { paymentKey, orderId, amount } = req.body;
 
       // 토스페이먼츠 API 호출하여 결제 승인
-      console.log('🔑 토스페이먼츠 API 호출 시작');
       const response = await axios.post('https://api.tosspayments.com/v1/payments/confirm', {
         paymentKey,
         orderId,
@@ -1001,7 +948,6 @@ class SubscriptionController {
       });
 
       const result = response.data;
-      console.log('🔑 토스페이먼츠 API 응답:', { status: response.status, result });
 
       if (response.status !== 200) {
         // 결제 승인 실패 히스토리 기록
@@ -1047,16 +993,10 @@ class SubscriptionController {
           const userId = orderParts[0];
           const planId = orderParts[1];
           
-          console.log('🔍 사용자 업데이트 시작:', { userId, planId });
           
           // 사용자 정보 조회 및 업데이트
           const user = await User.findById(userId);
           if (user) {
-            console.log('🔍 기존 사용자 정보:', {
-              email: user.email,
-              isPremium: user.isPremium,
-              subscriptionStatus: user.subscriptionStatus
-            });
             
             // 구독 정보 업데이트
             user.isPremium = true;
@@ -1073,14 +1013,6 @@ class SubscriptionController {
             user.lastPaymentDate = new Date();
             
             await user.save();
-            
-            console.log('✅ 사용자 구독 정보 업데이트 완료:', {
-              email: user.email,
-              isPremium: user.isPremium,
-              subscriptionStatus: user.subscriptionStatus,
-              subscriptionStartDate: user.subscriptionStartDate,
-              nextPaymentDate: user.nextPaymentDate
-            });
 
             // 결제 승인 성공 히스토리 기록
             await logSubscriptionHistory({

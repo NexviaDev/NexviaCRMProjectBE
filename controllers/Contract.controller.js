@@ -359,7 +359,6 @@ const createContract = async (req, res) => {
                 property.modificationHistory.push(modificationEntry);
                 await property.save();
                 
-                console.log(`매물 ${property.title} 상태가 ${newStatus}로 변경되었습니다.`);
             }
         }
 
@@ -640,7 +639,6 @@ const updateContract = async (req, res) => {
 
                 await property.save();
                 
-                console.log(`계약 ${contract.contractNumber} 완료: 매물 ${property.title} 소유권 이전 완료`);
             }
         } else if (updateData.property && contract.property?.toString() !== updateData.property && updateData.status === '완료' && contractType === '매매') {
             // 매물이 변경되면서 동시에 완료 상태로 변경되는 경우
@@ -783,7 +781,6 @@ const updateContract = async (req, res) => {
                     property.modificationHistory.push(modificationEntry);
                     await property.save();
                     
-                    console.log(`매물 ${property.title} 상태가 ${newStatus}로 변경되었습니다.`);
                 }
             }
         }
@@ -1041,7 +1038,6 @@ const createContractSchedule = async (contract, user) => {
         const schedule = new Schedule(scheduleData);
         await schedule.save();
 
-        console.log(`계약 ${contract.contractNumber}에 대한 통합 일정이 자동 생성되었습니다.`);
         
         return schedule;
     } catch (error) {
@@ -1087,7 +1083,6 @@ const updateContractSchedule = async (contract, user) => {
 
             // 일정 업데이트
             await Schedule.findByIdAndUpdate(schedule._id, scheduleData, { new: true });
-            console.log(`계약 ${contract.contractNumber}에 대한 통합 일정이 업데이트되었습니다.`);
         } else {
             // 계약 등록 시 자동으로 생성된 일정이 없는 경우 새로 생성
             await createContractSchedule(contract, user);

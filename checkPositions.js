@@ -10,7 +10,7 @@ const connectDB = async () => {
         };
         
         await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/crm_project', options);
-        console.log('✅ MongoDB 연결 성공');
+('✅ MongoDB 연결 성공');
     } catch (error) {
         console.error('❌ MongoDB 연결 실패:', error.message);
         process.exit(1);
@@ -23,17 +23,17 @@ const User = require('./models/user.model');
 // position 필드 상태 확인
 const checkPositions = async () => {
     try {
-        console.log('🔍 사용자 직급 필드 상태를 확인합니다...\n');
+('🔍 사용자 직급 필드 상태를 확인합니다...\n');
 
         // 1. 전체 사용자 수
         const totalUsers = await User.countDocuments();
-        console.log(`📊 전체 사용자 수: ${totalUsers}명`);
+(`📊 전체 사용자 수: ${totalUsers}명`);
 
         // 2. position 필드가 있는 사용자
         const usersWithPosition = await User.countDocuments({
             position: { $exists: true, $ne: null, $ne: '' }
         });
-        console.log(`✅ 직급 정보가 있는 사용자: ${usersWithPosition}명`);
+(`✅ 직급 정보가 있는 사용자: ${usersWithPosition}명`);
 
         // 3. position 필드가 없는 사용자
         const usersWithoutPosition = await User.countDocuments({
@@ -43,10 +43,10 @@ const checkPositions = async () => {
                 { position: '' }
             ]
         });
-        console.log(`❌ 직급 정보가 없는 사용자: ${usersWithoutPosition}명`);
+(`❌ 직급 정보가 없는 사용자: ${usersWithoutPosition}명`);
 
         // 4. 직급별 사용자 수
-        console.log('\n📈 직급별 사용자 수:');
+('\n📈 직급별 사용자 수:');
         const positionStats = await User.aggregate([
             {
                 $group: {
@@ -61,12 +61,12 @@ const checkPositions = async () => {
 
         positionStats.forEach(stat => {
             const positionName = stat._id || '미설정';
-            console.log(`   ${positionName}: ${stat.count}명`);
+(`   ${positionName}: ${stat.count}명`);
         });
 
         // 5. 직급이 없는 사용자 상세 정보
         if (usersWithoutPosition > 0) {
-            console.log('\n⚠️ 직급 정보가 없는 사용자 목록:');
+('\n⚠️ 직급 정보가 없는 사용자 목록:');
             const usersWithoutPositionList = await User.find({
                 $or: [
                     { position: { $exists: false } },
@@ -76,17 +76,17 @@ const checkPositions = async () => {
             }).select('email name level companyName');
 
             usersWithoutPositionList.forEach(user => {
-                console.log(`   - ${user.email} (${user.name}) - 레벨: ${user.level}, 회사: ${user.companyName || '없음'}`);
+(`   - ${user.email} (${user.name}) - 레벨: ${user.level}, 회사: ${user.companyName || '없음'}`);
             });
         }
 
         // 6. 요약
-        console.log('\n🎯 요약:');
+('\n🎯 요약:');
         if (usersWithoutPosition === 0) {
-            console.log('✅ 모든 사용자가 직급 정보를 가지고 있습니다!');
+('✅ 모든 사용자가 직급 정보를 가지고 있습니다!');
         } else {
-            console.log(`⚠️ ${usersWithoutPosition}명의 사용자에게 직급 정보가 필요합니다.`);
-            console.log('💡 마이그레이션을 실행하여 직급 정보를 추가하세요.');
+(`⚠️ ${usersWithoutPosition}명의 사용자에게 직급 정보가 필요합니다.`);
+('💡 마이그레이션을 실행하여 직급 정보를 추가하세요.');
         }
 
     } catch (error) {
@@ -103,7 +103,7 @@ const main = async () => {
         console.error('❌ 스크립트 실행 실패:', error.message);
     } finally {
         await mongoose.connection.close();
-        console.log('\n🔌 MongoDB 연결이 종료되었습니다.');
+('\n🔌 MongoDB 연결이 종료되었습니다.');
         process.exit(0);
     }
 };

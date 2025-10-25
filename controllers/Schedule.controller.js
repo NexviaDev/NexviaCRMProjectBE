@@ -9,24 +9,15 @@ exports.getSchedules = async (req, res) => {
         const { type, search, status, priority, startDate, endDate, page, limit, publisher } = req.query;
         const user = req.user;
 
-        // console.log('=== 일정 목록 조회 디버깅 ===');
-        // console.log('사용자 정보:', {
-        //     _id: user._id,
-        //     name: user.name,
-        //     level: user.level,
-        //     businessNumber: user.businessNumber
-        // });
 
         let query = {};
 
-        // 사용자 권한에 따른 필터링 - byCompanyNumber 기반으로 변경
-        if (user.level < 5) {
-            // Level 5 미만은 자신이 등록한 일정만 조회
-            query.publisher = user._id;
-        } else {
-            // Level 5 이상은 같은 사업자 번호의 일정만 조회
-            query.byCompanyNumber = user.businessNumber;
-        }
+        // 모든 사용자는 자신이 등록한 일정만 조회
+        query.publisher = user._id;
+        
+        // 디버깅용 로그 (임시)
+        console.log('사용자 ID:', user._id);
+        console.log('쿼리:', JSON.stringify(query, null, 2));
 
         // 타입 필터링
         if (type && type !== 'all') {
@@ -69,7 +60,6 @@ exports.getSchedules = async (req, res) => {
             query.publisher = publisher;
         }
 
-        console.log('최종 쿼리:', JSON.stringify(query, null, 2));
 
         // 페이지네이션 파라미터 처리
         const pageNum = parseInt(page) || 1;
@@ -87,14 +77,6 @@ exports.getSchedules = async (req, res) => {
             .sort({ date: 1, time: 1 })
             .skip(skip)
             .limit(limitNum);
-
-        console.log('조회된 일정 수:', schedules.length);
-        console.log('일정 목록:', schedules.map(s => ({ 
-            title: s.title, 
-            type: s.type, 
-            date: s.date,
-            publisher: s.publisher?.name 
-        })));
 
         res.json({
             success: true,
@@ -132,23 +114,12 @@ exports.getSchedule = async (req, res) => {
             });
         }
 
-        // 권한 확인 - byCompanyNumber 기반으로 변경
-        if (user.level < 5) {
-            // Level 5 미만은 자신이 등록한 일정만 조회
-            if (schedule.publisher._id.toString() !== user._id.toString()) {
-                return res.status(403).json({
-                    success: false,
-                    message: '이 일정에 접근할 권한이 없습니다.'
-                });
-            }
-        } else {
-            // Level 5 이상은 같은 사업자 번호의 일정만 조회
-            if (schedule.byCompanyNumber !== user.businessNumber) {
-                return res.status(403).json({
-                    success: false,
-                    message: '이 일정에 접근할 권한이 없습니다.'
-                });
-            }
+        // 권한 확인 - 모든 사용자는 자신이 등록한 일정만 조회
+        if (schedule.publisher._id.toString() !== user._id.toString()) {
+            return res.status(403).json({
+                success: false,
+                message: '이 일정에 접근할 권한이 없습니다.'
+            });
         }
 
         res.json({
@@ -174,9 +145,6 @@ exports.createSchedule = async (req, res) => {
             byCompanyNumber: user.businessNumber || ''
         };
 
-        console.log('=== 일정 등록 디버깅 ===');
-        console.log('전송된 데이터:', req.body);
-        console.log('처리된 scheduleData:', scheduleData);
 
         // 필수 필드 검증
         if (!scheduleData.title || !scheduleData.type || !scheduleData.date || !scheduleData.time || !scheduleData.location) {
@@ -232,16 +200,10 @@ exports.createSchedule = async (req, res) => {
         await schedule.save();
 
         // 관련 고객들이 있는 경우, 각 고객의 schedules 배열에 일정 ID 추가
-        console.log('=== 일정 등록 디버깅 ===');
-        console.log('전송된 relatedCustomers:', scheduleData.relatedCustomers);
-        console.log('relatedCustomers 타입:', typeof scheduleData.relatedCustomers);
-        console.log('relatedCustomers 길이:', scheduleData.relatedCustomers ? scheduleData.relatedCustomers.length : 'undefined');
         
         if (scheduleData.relatedCustomers && scheduleData.relatedCustomers.length > 0) {
-            console.log(`🔄 ${scheduleData.relatedCustomers.length}명의 고객에게 일정을 등록합니다...`);
             
             for (const customerId of scheduleData.relatedCustomers) {
-                console.log(`📝 고객 ID ${customerId} 처리 중...`);
                 try {
                     const result = await Customer.findByIdAndUpdate(
                         customerId,
@@ -256,18 +218,14 @@ exports.createSchedule = async (req, res) => {
                     );
                     
                     if (result) {
-                        console.log(`✅ 고객 ${customerId}의 schedules 배열에 일정 ${schedule._id} 추가 완료`);
                     } else {
-                        console.log(`❌ 고객 ${customerId}를 찾을 수 없음`);
                     }
                 } catch (customerUpdateError) {
                     console.error(`❌ 고객 ${customerId}의 schedules 배열 업데이트 오류:`, customerUpdateError);
                     // 개별 고객 업데이트 실패해도 일정 등록은 성공으로 처리
                 }
             }
-            console.log('🎉 모든 고객에게 일정 등록 완료');
         } else {
-            console.log('⚠️ relatedCustomers가 없거나 비어있음');
         }
 
         const populatedSchedule = await Schedule.findById(schedule._id)
@@ -306,23 +264,12 @@ exports.updateSchedule = async (req, res) => {
             });
         }
 
-        // 권한 확인 - byCompanyNumber 기반으로 변경
-        if (user.level < 5) {
-            // Level 5 미만은 자신이 등록한 일정만 수정
-            if (schedule.publisher._id.toString() !== user._id.toString()) {
-                return res.status(403).json({
-                    success: false,
-                    message: '본인이 등록한 일정만 수정할 수 있습니다.'
-                });
-            }
-        } else {
-            // Level 5 이상은 같은 사업자 번호의 일정만 수정
-            if (schedule.byCompanyNumber !== user.businessNumber) {
-                return res.status(403).json({
-                    success: false,
-                    message: '본인이 등록한 일정만 수정할 수 있습니다.'
-                });
-            }
+        // 권한 확인 - 모든 사용자는 자신이 등록한 일정만 수정
+        if (schedule.publisher._id.toString() !== user._id.toString()) {
+            return res.status(403).json({
+                success: false,
+                message: '본인이 등록한 일정만 수정할 수 있습니다.'
+            });
         }
 
         // 상태가 완료로 변경되는 경우 완료 시간 추가
@@ -354,7 +301,6 @@ exports.updateSchedule = async (req, res) => {
                                 $pull: { schedules: { schedule: id } }
                             }
                         );
-                        console.log(`기존 고객 ${customerId}에서 일정 ${id} 제거 완료`);
                     } catch (error) {
                         console.error(`기존 고객 ${customerId}에서 일정 제거 오류:`, error);
                     }
@@ -376,7 +322,6 @@ exports.updateSchedule = async (req, res) => {
                                 }
                             }
                         );
-                        console.log(`새 고객 ${customerId}에 일정 ${id} 추가 완료`);
                     } catch (error) {
                         console.error(`새 고객 ${customerId}에 일정 추가 오류:`, error);
                     }
@@ -425,23 +370,12 @@ exports.deleteSchedule = async (req, res) => {
             });
         }
 
-        // 권한 확인 - byCompanyNumber 기반으로 변경
-        if (user.level < 5) {
-            // Level 5 미만은 자신이 등록한 일정만 삭제
-            if (schedule.publisher._id.toString() !== user._id.toString()) {
-                return res.status(403).json({
-                    success: false,
-                    message: '이 일정을 삭제할 권한이 없습니다.'
-                });
-            }
-        } else {
-            // Level 5 이상은 같은 사업자 번호의 일정만 삭제
-            if (schedule.byCompanyNumber !== user.businessNumber) {
-                return res.status(403).json({
-                    success: false,
-                    message: '이 일정을 삭제할 권한이 없습니다.'
-                });
-            }
+        // 권한 확인 - 모든 사용자는 자신이 등록한 일정만 삭제
+        if (schedule.publisher._id.toString() !== user._id.toString()) {
+            return res.status(403).json({
+                success: false,
+                message: '이 일정을 삭제할 권한이 없습니다.'
+            });
         }
 
 
@@ -456,7 +390,6 @@ exports.deleteSchedule = async (req, res) => {
                             $pull: { schedules: { schedule: id } }
                         }
                     );
-                    console.log(`고객 ${customerId}의 schedules 배열에서 일정 ${id} 제거 완료`);
                 } catch (customerUpdateError) {
                     console.error(`고객 ${customerId}의 schedules 배열 업데이트 오류:`, customerUpdateError);
                     // 개별 고객 업데이트 실패해도 일정 삭제는 성공으로 처리
@@ -493,17 +426,10 @@ exports.getMonthlySchedules = async (req, res) => {
             date: {
                 $gte: startDate,
                 $lte: endDate
-            }
+            },
+            // 모든 사용자는 자신이 등록한 일정만 조회
+            publisher: user._id
         };
-
-        // 사용자 권한에 따른 필터링 - byCompanyNumber 기반으로 변경
-        if (user.level < 5) {
-            // Level 5 미만은 자신이 등록한 일정만 조회
-            query.publisher = user._id;
-        } else {
-            // Level 5 이상은 같은 사업자 번호의 일정만 조회
-            query.byCompanyNumber = user.businessNumber;
-        }
 
         const schedules = await Schedule.find(query)
             .populate('publisher', 'name email businessNumber level phone')
