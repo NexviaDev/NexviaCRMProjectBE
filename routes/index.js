@@ -20,6 +20,7 @@ const companyRoutes = require('./Company.api')
 const utilsRoutes = require('./utils.api')
 const scheduleBriefingRoutes = require('./ScheduleBriefing.api')
 const newsRoutes = require('./News.api')
+const testSubscriptionRoutes = require('./testSubscription.api')
 
 router.use('/users', userApi);
 router.use('/user', userApi);
@@ -44,6 +45,7 @@ router.use('/company', companyRoutes); // 회사 API 추가
 router.use('/utils', utilsRoutes); // 유틸리티 API 추가
 router.use('/schedule-briefing', scheduleBriefingRoutes); // 스케줄 브리핑 API 추가
 router.use('/news', newsRoutes); // 뉴스 API 추가
+router.use('/test-subscription', testSubscriptionRoutes); // 테스트 구독 API 추가
 router.use('/uploads', express.static('uploads'));
 
 module.exports = router;

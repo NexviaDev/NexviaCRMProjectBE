@@ -724,45 +724,68 @@ class SubscriptionController {
       // 구독 정보가 없으면 자동 생성
       if (!subscription) {
         
-        // 첫 구독자인 경우 첫 달 무료로 설정 (토스페이먼츠 테스트 환경에서는 최소 100원)
-        const finalAmount = isFirstTimeSubscriber ? 100 : amount;
-        actualPaymentAmount = isFirstTimeSubscriber ? 100 : amount; // 실제 결제 금액 계산
+        // 80000원으로 설정하되, 1개월 후 첫 결제
+        const finalAmount = amount; // 80000원
+        actualPaymentAmount = 0; // 첫 결제는 1개월 후로 연기
+        
+        const now = new Date();
+        // 다음 달 같은 날짜로 설정 (없는 날짜 처리)
+        let nextBillingDate = new Date(now);
+        nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
+        
+        // 없는 날짜 처리 (예: 1월 31일 -> 2월 28일 또는 29일)
+        const targetDay = now.getDate();
+        const maxDay = new Date(nextBillingDate.getFullYear(), nextBillingDate.getMonth() + 1, 0).getDate();
+        nextBillingDate.setDate(Math.min(targetDay, maxDay));
         
         const newSubscription = new Subscription({
           customerId: customerKey,
           planId: 'enterprise',
           planName: '프리미엄 구독',
-          price: finalAmount,
+          price: finalAmount, // 80000원
           customerEmail: customerEmail,
           customerName: customerName,
           status: 'active',
-          startDate: new Date(),
-          nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30일 후
+          startDate: now,
+          nextBillingDate: nextBillingDate, // 1개월 후
           autoRenew: true,
           paymentMethod: 'card',
           metadata: isFirstTimeSubscriber ? {
             isFirstSubscription: true,
-            originalPrice: amount,
-            freeTrialApplied: true
+            firstPaymentDelayed: true
           } : {}
         });
         
         await newSubscription.save();
         finalSubscription = newSubscription;
         
-        // 사용자 무료 체험 정보 업데이트
+        // 사용자 정보 업데이트 - 즉시 프리미엄 활성화 (결제 없이)
         if (isFirstTimeSubscriber) {
           user.freeTrialUsed = true;
-          user.freeTrialStartDate = new Date();
-          user.freeTrialEndDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
           user.isPremium = true;
           user.subscriptionStatus = 'active';
+          user.subscriptionStartDate = now;
+          user.nextPaymentDate = nextBillingDate;
           await user.save();
         }
       } else {
-        // 기존 구독이 있는 경우에도 첫 구독자인지 확인하여 실제 결제 금액 조정
-        // 토스페이먼츠 테스트 환경에서는 최소 결제 금액(100원) 필요
-        actualPaymentAmount = isFirstTimeSubscriber ? 100 : finalSubscription.price;
+        // 기존 구독이 있는 경우 실제 결제 금액
+        actualPaymentAmount = finalSubscription.price;
+      }
+
+      // 첫 구독자이고 첫 결제가 연기된 경우 실제 결제 없이 진행
+      if (isFirstTimeSubscriber && actualPaymentAmount === 0) {
+        return res.status(200).json({
+          success: true,
+          data: {
+            paymentKey: 'pending_first_payment',
+            orderId: orderId,
+            amount: 0,
+            status: 'pending',
+            firstPaymentDate: finalSubscription.nextBillingDate
+          },
+          message: '구독이 시작되었습니다. 첫 결제는 1개월 후에 진행됩니다.'
+        });
       }
 
       if (!finalSubscription.billingKey) {
@@ -773,11 +796,9 @@ class SubscriptionController {
       }
 
       // 토스페이먼츠 API 호출하여 정기결제 실행
-      
-      // 토스페이먼츠에서 실제로 결제할 금액 전달
       const response = await axios.post(`https://api.tosspayments.com/v1/billing/${finalSubscription.billingKey}`, {
         customerKey,
-        amount: actualPaymentAmount, // 실제 결제 금액 (첫 구독자는 0원)
+        amount: actualPaymentAmount,
         orderId,
         orderName,
         customerEmail,

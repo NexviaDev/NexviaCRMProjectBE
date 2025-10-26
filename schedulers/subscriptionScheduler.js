@@ -22,16 +22,16 @@ class SubscriptionScheduler {
 
   // 스케줄러 시작
   start() {
-    // 매월 1일 자정에 실행 (0 0 1 * *)
-    cron.schedule('0 0 1 * *', async () => {
+    // 매일 오후 3시에 정기결제 실행 (0 15 * * *)
+    cron.schedule('0 15 * * *', async () => {
       await this.processMonthlySubscriptions();
     }, {
       scheduled: true,
       timezone: "Asia/Seoul"
     });
 
-    // 매일 오전 9시에 결제 실패한 구독 재시도 (0 9 * * *)
-    cron.schedule('0 9 * * *', async () => {
+    // 매일 오후 3시 10분에 결제 실패한 구독 재시도 (10 15 * * *)
+    cron.schedule('10 15 * * *', async () => {
       await this.processFailedPaymentRetries();
     }, {
       scheduled: true,
@@ -172,39 +172,23 @@ class SubscriptionScheduler {
       // 구독 정보 업데이트
       subscription.lastPaymentDate = new Date();
       
-      // 다음 결제일 계산 (윤년 문제 해결)
+      // 다음 결제일 계산 (윤년 및 없는 날짜 문제 해결)
       const nextDate = new Date(); // 현재 결제 시간 기준
       
-      // 월간 결제의 경우 윤년 문제를 고려한 안전한 계산
-      const currentYear = nextDate.getFullYear();
-      const currentMonth = nextDate.getMonth();
-      const currentDay = nextDate.getDate();
+      // 다음 달로 이동
+      nextDate.setMonth(nextDate.getMonth() + 1);
       
-      // 다음 달의 같은 날짜 계산
-      let nextYear = currentYear;
-      let nextMonth = currentMonth + 1;
+      // 현재 날짜가 다음 달에 존재하지 않는 경우 처리 (예: 1월 31일 -> 2월 28일/29일)
+      const currentDay = new Date().getDate();
+      const maxDayInNextMonth = new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).getDate();
+      const targetDay = Math.min(currentDay, maxDayInNextMonth);
       
-      // 12월을 넘어가면 다음 해 1월로
-      if (nextMonth > 11) {
-        nextMonth = 0;
-        nextYear += 1;
-      }
+      // 시간과 분을 유지하고 날짜만 조정
+      const hours = nextDate.getHours();
+      const minutes = nextDate.getMinutes();
+      nextDate.setDate(targetDay);
+      nextDate.setHours(hours, minutes, 0, 0);
       
-      // 다음 달의 마지막 날짜 확인
-      const daysInNextMonth = new Date(nextYear, nextMonth + 1, 0).getDate();
-      
-      // 현재 날짜가 다음 달에 존재하지 않으면 마지막 날로 조정
-      let targetDay = Math.min(currentDay, daysInNextMonth);
-      
-      // 특별 케이스: 2월 29일 → 다음 해 2월 28일 (윤년이 아닌 경우)
-      if (currentMonth === 1 && currentDay === 29) { // 2월 29일
-        const isNextYearLeap = (nextYear % 4 === 0 && nextYear % 100 !== 0) || (nextYear % 400 === 0);
-        if (!isNextYearLeap) {
-          targetDay = 28; // 다음 해가 윤년이 아니면 28일로
-        }
-      }
-      
-      nextDate.setFullYear(nextYear, nextMonth, targetDay);
       subscription.nextBillingDate = nextDate;
       subscription.paymentHistory = subscription.paymentHistory || [];
       subscription.paymentHistory.push({
