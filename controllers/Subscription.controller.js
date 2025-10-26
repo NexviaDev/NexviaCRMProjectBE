@@ -775,6 +775,7 @@ class SubscriptionController {
 
       // 첫 구독자이고 첫 결제가 연기된 경우 실제 결제 없이 진행
       if (isFirstTimeSubscriber && actualPaymentAmount === 0) {
+        console.log('✅ 첫 구독자: 결제 없이 구독만 활성화');
         return res.status(200).json({
           success: true,
           data: {
@@ -788,10 +789,20 @@ class SubscriptionController {
         });
       }
 
+      // 첫 구독자가 아닌 경우에만 빌링키 체크 및 실제 결제 진행
       if (!finalSubscription.billingKey) {
         return res.status(400).json({
           success: false,
           message: '빌링키가 발급되지 않았습니다. 먼저 빌링키를 발급해주세요.'
+        });
+      }
+
+      // 첫 구독자는 여기서 더 이상 진행하지 않음
+      if (isFirstTimeSubscriber) {
+        console.log('✅ 첫 구독자: 추가 결제 없이 종료');
+        return res.status(200).json({
+          success: true,
+          message: '구독이 활성화되었습니다. 첫 결제는 1개월 후에 진행됩니다.'
         });
       }
 
