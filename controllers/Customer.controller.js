@@ -116,18 +116,15 @@ exports.getCustomerSchedules = async (req, res) => {
             });
         }
 
-        // 권한 확인
-        if (user.level < 11) {
-            // Level 11 미만은 자신이 등록한 고객의 일정만 조회 가능
-            if (customer.publisher.toString() !== user._id.toString()) {
-                // 같은 사업자번호를 가진 사용자가 등록한 고객인지 확인
-                const customerPublisher = await User.findById(customer.publisher);
-                if (!customerPublisher || customerPublisher.businessNumber !== user.businessNumber) {
-                    return res.status(403).json({
-                        success: false,
-                        message: '이 고객의 일정에 접근할 권한이 없습니다.'
-                    });
-                }
+        // 권한 확인 - 같은 회사 소속이면 레벨과 관계없이 조회 가능
+        if (customer.publisher.toString() !== user._id.toString()) {
+            // 같은 사업자번호를 가진 사용자가 등록한 고객인지 확인
+            const customerPublisher = await User.findById(customer.publisher);
+            if (!customerPublisher || customerPublisher.businessNumber !== user.businessNumber) {
+                return res.status(403).json({
+                    success: false,
+                    message: '이 고객의 일정에 접근할 권한이 없습니다.'
+                });
             }
         }
 

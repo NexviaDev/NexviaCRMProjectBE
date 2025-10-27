@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const { convertCoordinatesToLocation } = require('../utils/locationUtils');
+const { getDashboardStats } = require('../controllers/Dashboard.controller');
+const auth = require('../middleware/auth');
 
 // 위도/경도를 지역명으로 변환하는 API
 router.post('/convert-location', async (req, res) => {
@@ -51,5 +53,8 @@ router.post('/convert-location', async (req, res) => {
     });
   }
 });
+
+// 대시보드 통계 조회 (최적화된 API)
+router.get('/dashboard/stats', auth, getDashboardStats);
 
 module.exports = router;

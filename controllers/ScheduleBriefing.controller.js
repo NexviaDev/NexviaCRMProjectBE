@@ -1,17 +1,35 @@
 const Schedule = require('../models/Schedule.model');
 const Customer = require('../models/Customer.model');
 const Property = require('../models/Property.model');
+const BriefingLog = require('../models/BriefingLog.model');
 const geminiService = require('../services/geminiService');
 
 // 금주 업무리스트 브리핑 생성
 exports.generateWeeklyBriefing = async (req, res) => {
     try {
         const user = req.user;
+        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+        
+        // 오늘 이미 생성했는지 확인
+        const existingLog = await BriefingLog.findOne({
+            userId: user._id,
+            type: 'weekly',
+            generatedDate: today
+        });
+
+        // 이미 생성했다면 저장된 데이터 반환
+        if (existingLog) {
+            return res.json({
+                success: true,
+                data: existingLog.briefingData,
+                isFromCache: true
+            });
+        }
         
         // 이번 주 시작일과 종료일 계산
-        const today = new Date();
-        const startOfWeek = new Date(today);
-        startOfWeek.setDate(today.getDate() - today.getDay()); // 일요일
+        const todayDate = new Date();
+        const startOfWeek = new Date(todayDate);
+        startOfWeek.setDate(todayDate.getDate() - todayDate.getDay()); // 일요일
         startOfWeek.setHours(0, 0, 0, 0);
         
         const endOfWeek = new Date(startOfWeek);
@@ -27,12 +45,22 @@ exports.generateWeeklyBriefing = async (req, res) => {
             }
         };
 
-        // 사용자 권한에 따른 필터링
+        // 사용자 권한에 따른 필터링 - 레벨과 관계없이 본인 일정만 가져옴
         if (user.level < 5) {
             query.publisher = user._id;
         } else {
+            // 레벨이 높아도 본인의 일정만 조회
+            query.publisher = user._id;
             query.byCompanyNumber = user.businessNumber;
         }
+
+        console.log('🔍 금주 브리핑 사용자 필터:', {
+            userId: user._id.toString(),
+            userName: user.name,
+            userLevel: user.level,
+            businessNumber: user.businessNumber,
+            queryCondition: query
+        });
 
         const schedules = await Schedule.find(query)
             .populate('publisher', 'name email businessNumber level phone')
@@ -41,6 +69,14 @@ exports.generateWeeklyBriefing = async (req, res) => {
             .populate('relatedContracts', 'contractNumber type status')
             .sort({ date: 1, time: 1 });
 
+        console.log(`📅 가져온 일정 수: ${schedules.length}개`);
+        if (schedules.length > 0) {
+            console.log('📋 일정 예시:', {
+                첫일정제목: schedules[0].title,
+                작성자: schedules[0].publisher?.name,
+                작성자ID: schedules[0].publisher?._id?.toString()
+            });
+        }
 
         if (schedules.length === 0) {
             return res.json({
@@ -56,16 +92,27 @@ exports.generateWeeklyBriefing = async (req, res) => {
         // 간단한 브리핑 생성 (30초 타임아웃 방지)
         const briefing = await generateQuickBriefing(schedules, user.name);
 
+        const briefingData = {
+            briefing,
+            schedules: schedules.slice(0, 5), // 최대 5개만 전송
+            weekRange: {
+                start: startOfWeek,
+                end: endOfWeek
+            }
+        };
+
+        // 생성된 브리핑을 데이터베이스에 저장 (하루에 한 번만 생성)
+        await BriefingLog.create({
+            userId: user._id,
+            type: 'weekly',
+            generatedDate: today,
+            briefingData: briefingData
+        });
+
         res.json({
             success: true,
-            data: {
-                briefing,
-                schedules: schedules.slice(0, 5), // 최대 5개만 전송
-                weekRange: {
-                    start: startOfWeek,
-                    end: endOfWeek
-                }
-            }
+            data: briefingData,
+            isFromCache: false
         });
 
     } catch (error) {
@@ -248,6 +295,24 @@ exports.generateMeetingMessage = async (req, res) => {
 exports.generateScheduleAnalysis = async (req, res) => {
     try {
         const user = req.user;
+        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+        
+        // 오늘 이미 생성했는지 확인
+        const existingLog = await BriefingLog.findOne({
+            userId: user._id,
+            type: 'analysis',
+            generatedDate: today
+        });
+
+        // 이미 생성했다면 저장된 데이터 반환
+        if (existingLog) {
+            return res.json({
+                success: true,
+                data: existingLog.briefingData,
+                isFromCache: true
+            });
+        }
+
         const { startDate, endDate } = req.query;
 
         let query = {};
@@ -297,16 +362,27 @@ exports.generateScheduleAnalysis = async (req, res) => {
         // GEMINI API를 사용하여 분석 생성
         const analysis = await geminiService.generateScheduleAnalysis(schedules);
 
+        const analysisData = {
+            analysis,
+            schedules,
+            period: {
+                start: query.date.$gte,
+                end: query.date.$lte
+            }
+        };
+
+        // 생성된 분석을 데이터베이스에 저장 (하루에 한 번만 생성)
+        await BriefingLog.create({
+            userId: user._id,
+            type: 'analysis',
+            generatedDate: today,
+            briefingData: analysisData
+        });
+
         res.json({
             success: true,
-            data: {
-                analysis,
-                schedules,
-                period: {
-                    start: query.date.$gte,
-                    end: query.date.$lte
-                }
-            }
+            data: analysisData,
+            isFromCache: false
         });
 
     } catch (error) {
@@ -322,6 +398,24 @@ exports.generateScheduleAnalysis = async (req, res) => {
 exports.generateDailyBriefing = async (req, res) => {
     try {
         const user = req.user;
+        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+        
+        // 오늘 이미 생성했는지 확인
+        const existingLog = await BriefingLog.findOne({
+            userId: user._id,
+            type: 'daily',
+            generatedDate: today
+        });
+
+        // 이미 생성했다면 저장된 데이터 반환
+        if (existingLog) {
+            return res.json({
+                success: true,
+                data: existingLog.briefingData,
+                isFromCache: true
+            });
+        }
+
         const { date } = req.query;
 
         // 날짜 설정 (기본값: 오늘)
@@ -341,12 +435,23 @@ exports.generateDailyBriefing = async (req, res) => {
             }
         };
 
-        // 사용자 권한에 따른 필터링
+        // 사용자 권한에 따른 필터링 - 레벨과 관계없이 본인 일정만 가져옴
         if (user.level < 5) {
             query.publisher = user._id;
         } else {
+            // 레벨이 높아도 본인의 일정만 조회
+            query.publisher = user._id;
             query.byCompanyNumber = user.businessNumber;
         }
+
+        console.log('🔍 일일 브리핑 사용자 필터:', {
+            userId: user._id.toString(),
+            userName: user.name,
+            userLevel: user.level,
+            businessNumber: user.businessNumber,
+            queryCondition: query,
+            targetDate: targetDate.toISOString().split('T')[0]
+        });
 
         const schedules = await Schedule.find(query)
             .populate('publisher', 'name email businessNumber level phone')
@@ -354,6 +459,15 @@ exports.generateDailyBriefing = async (req, res) => {
             .populate('relatedProperties', 'title address')
             .populate('relatedContracts', 'contractNumber type status')
             .sort({ time: 1 });
+
+        console.log(`📅 가져온 일정 수: ${schedules.length}개`);
+        if (schedules.length > 0) {
+            console.log('📋 일정 예시:', {
+                첫일정제목: schedules[0].title,
+                작성자: schedules[0].publisher?.name,
+                작성자ID: schedules[0].publisher?._id?.toString()
+            });
+        }
 
 
         if (schedules.length === 0) {
@@ -370,13 +484,24 @@ exports.generateDailyBriefing = async (req, res) => {
         // 간단한 일일 브리핑 생성 (100자 제한, 주관적 TIP 포함)
         const briefing = await generateDailyBriefing(schedules, user.name, targetDate);
 
+        const briefingData = {
+            briefing,
+            schedules,
+            date: targetDate
+        };
+
+        // 생성된 브리핑을 데이터베이스에 저장 (하루에 한 번만 생성)
+        await BriefingLog.create({
+            userId: user._id,
+            type: 'daily',
+            generatedDate: today,
+            briefingData: briefingData
+        });
+
         res.json({
             success: true,
-            data: {
-                briefing,
-                schedules,
-                date: targetDate
-            }
+            data: briefingData,
+            isFromCache: false
         });
 
     } catch (error) {
