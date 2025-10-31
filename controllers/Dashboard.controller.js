@@ -6,13 +6,36 @@ const Schedule = require('../models/Schedule.model');
 // 홈 대시보드 통계 조회 (최적화된 버전)
 const getDashboardStats = async (req, res) => {
     try {
-        const userId = req.user.id;
+        const user = req.user;
 
         // 현재 날짜 설정
         const today = new Date().toISOString().split('T')[0];
         const currentMonth = new Date().getMonth() + 1;
         const currentYear = new Date().getFullYear();
         const startOfMonth = new Date(currentYear, currentMonth - 1, 1);
+
+        // 사업자번호 필터링 조건 설정
+        // 통계는 본인이 속한 사업자번호와 동일한 데이터만 계산 (level >= 11 전체 관리자는 제외)
+        let propertyQuery = { isDeleted: false };
+        let customerQuery = { isDeleted: false };
+        let contractQuery = {};
+        let scheduleQuery = { isDeleted: false, date: { $gte: today }, status: '예정' };
+
+        if (user.level >= 11) {
+            // 레벨 11 이상(전체 관리자): 모든 데이터 조회 가능 (필터링 없음)
+        } else if (user.businessNumber) {
+            // 같은 사업자번호만 조회 (본인이 속한 회사의 데이터만)
+            propertyQuery.byCompanyNumber = user.businessNumber;
+            customerQuery.byCompanyNumber = user.businessNumber;
+            contractQuery.byCompanyNumber = user.businessNumber;
+            scheduleQuery.byCompanyNumber = user.businessNumber;
+        } else {
+            // 사업자번호가 없으면 본인이 등록한 데이터만
+            propertyQuery.publisher = user._id;
+            customerQuery.publisher = user._id;
+            contractQuery.publisher = user._id;
+            scheduleQuery.publisher = user._id;
+        }
 
         // 병렬로 모든 통계를 한번에 조회
         const [
@@ -24,26 +47,26 @@ const getDashboardStats = async (req, res) => {
             upcomingAppointments,
             allContracts
         ] = await Promise.all([
-            // 1. 총 매물 수
-            Property.countDocuments(),
+            // 1. 총 매물 수 (같은 사업자번호만)
+            Property.countDocuments(propertyQuery),
             
-            // 2. 활성 매수자 수
-            Customer.countDocuments({ type: '매수자', status: '활성' }),
+            // 2. 활성 매수자 수 (같은 사업자번호만, categories 배열에 '매수' 포함된 고객)
+            Customer.countDocuments({ ...customerQuery, categories: { $in: ['매수'] }, status: '활성' }),
             
-            // 3. 활성 매도자 수
-            Customer.countDocuments({ type: '매도자', status: '활성' }),
+            // 3. 활성 매도자 수 (같은 사업자번호만, categories 배열에 '매도' 포함된 고객)
+            Customer.countDocuments({ ...customerQuery, categories: { $in: ['매도'] }, status: '활성' }),
             
-            // 4. 진행 중인 계약 수
-            Contract.countDocuments({ status: '진행중' }),
+            // 4. 진행 중인 계약 수 (같은 사업자번호만)
+            Contract.countDocuments({ ...contractQuery, status: '진행중' }),
             
-            // 5. 완료된 계약 수
-            Contract.countDocuments({ status: '완료' }),
+            // 5. 완료된 계약 수 (같은 사업자번호만)
+            Contract.countDocuments({ ...contractQuery, status: '완료' }),
             
-            // 6. 예정 일정 수 (오늘 이후)
-            Schedule.countDocuments({ date: { $gte: today }, status: '예정' }),
+            // 6. 예정 일정 수 (오늘 이후, 같은 사업자번호만)
+            Schedule.countDocuments(scheduleQuery),
             
-            // 7. 월 매출 계산을 위한 계약 데이터
-            Contract.find({ status: '완료' })
+            // 7. 월 매출 계산을 위한 계약 데이터 (같은 사업자번호만)
+            Contract.find({ ...contractQuery, status: '완료' })
                 .select('contractDate commission')
                 .lean()
         ]);

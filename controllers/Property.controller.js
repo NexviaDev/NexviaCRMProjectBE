@@ -144,9 +144,17 @@ exports.getProperties = async (req, res) => {
             query.type = filterType;
         }
 
-        // 사업자 번호 기반 필터링 - 같은 사업자 번호의 매물만 조회
-        if (user && user.businessNumber) {
-            query.byCompanyNumber = user.businessNumber;
+        // 사용자 권한에 따른 필터링 (CustomerManagement와 동일한 로직)
+        if (user) {
+            if (user.level >= 11) {
+                // 레벨 11 이상(전체 관리자): 모든 매물 조회 가능 (필터링 없음)
+            } else if (user.businessNumber) {
+                // 사업자번호가 있는 경우: 같은 사업자번호의 매물만 조회
+                query.byCompanyNumber = user.businessNumber;
+            } else {
+                // 그 외: 자신이 등록한 매물만 조회
+                query.publisher = user._id;
+            }
         }
 
 
@@ -218,45 +226,35 @@ exports.getProperties = async (req, res) => {
         }
             
         // 사용자 권한에 따라 매물 필터링
-        if (user) {
+        // 레벨 11 이상(전체 관리자)은 이미 백엔드 쿼리에서 모든 매물을 조회했으므로 추가 필터링 불필요
+        if (user && user.level < 11) {
             properties = properties.filter((property) => {
-
-                
-                // publisher가 없는 경우 레벨 11 이상만 접근 가능
-                if (!property.publisher) {
-                    return user.level >= 5;
-                }
-
-                // 1. 내가 올린 매물
-                if (property.publisher._id.toString() === user._id.toString()) {
+                // 1. 내가 올린 매물 (publisher가 있는 경우만 체크)
+                if (property.publisher && property.publisher._id && property.publisher._id.toString() === user._id.toString()) {
                     return true;
                 }
 
-                // 2. 같은 사업자번호이고 레벨이 3 이상
+                // 2. 같은 사업자번호이고 레벨이 3 이상 (byCompanyNumber로 체크 - publisher 삭제되어도 작동)
                 if (
-                    property.publisher.businessNumber &&
-                    property.publisher.businessNumber === user.businessNumber &&
+                    property.byCompanyNumber &&
+                    property.byCompanyNumber === user.businessNumber &&
                     user.level >= 3
                 ) {
-                                    return true;
-            }
+                    return true;
+                }
 
-            // 3. 레벨이 5 이상이어도 다른 사업자번호의 매물은 제한적 접근
-            if (user.level >= 5) {
-                // 같은 사업자번호의 매물은 자유롭게 접근
-                if (property.publisher.businessNumber === user.businessNumber) {
-                    return true;
+                // 3. 레벨이 5 이상이어도 같은 사업자번호의 매물만 접근
+                if (user.level >= 5) {
+                    // 같은 사업자번호의 매물은 자유롭게 접근 (byCompanyNumber로 체크)
+                    if (property.byCompanyNumber === user.businessNumber) {
+                        return true;
+                    }
+                    return false;
                 }
-                // 다른 사업자번호의 매물은 레벨 10 이상만 접근 가능
-                if (user.level >= 11) {
-                    return true;
-                }
+
                 return false;
-            }
-
-            return false;
-        });
-        } else {
+            });
+        } else if (!user) {
             // 로그인하지 않은 경우 빈 배열 반환
             properties = [];
         }
@@ -363,18 +361,38 @@ exports.createProperty = async (req, res) => {
             }
         }
 
-        // 중복 매물 체크 - 매물명만으로 중복 검사
-        const duplicateCheck = await Property.findOne({
+        // 중복 매물 체크 - 같은 사업자번호 내에서 매물명, 주소, 상세주소로 중복 검사
+        const duplicateChecks = await Property.find({
             isDeleted: false,
-            title: title
-        }).populate('publisher', 'businessNumber');
+            byCompanyNumber: user.businessNumber || '',
+            $or: [
+                { title: title }, // 같은 매물명
+                { 
+                    // 같은 주소와 상세주소
+                    address: address,
+                    detailedAddress: detailedAddress || ''
+                }
+            ]
+        });
 
-        if (duplicateCheck) {
-            // 같은 사업자번호인지 확인
-            if (duplicateCheck.publisher.businessNumber === user.businessNumber) {
+        if (duplicateChecks.length > 0) {
+            const duplicateTitle = duplicateChecks.find(p => p.title === title);
+            const duplicateAddress = duplicateChecks.find(p => 
+                p.address === address && 
+                (p.detailedAddress || '') === (detailedAddress || '')
+            );
+
+            if (duplicateTitle) {
                 return res.status(400).json({
                     success: false,
                     message: '이미 등록된 매물명입니다. 다른 매물명을 사용해주세요.'
+                });
+            }
+
+            if (duplicateAddress) {
+                return res.status(400).json({
+                    success: false,
+                    message: '이미 등록된 주소와 상세주소의 매물입니다. 중복된 매물인지 확인해주세요.'
                 });
             }
         }
