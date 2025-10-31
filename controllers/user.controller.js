@@ -575,7 +575,15 @@ userController.naverLogin = async (req, res) => {
         }
 
         // 네이버 액세스 토큰 발급 요청
-        const redirectURI = process.env.NAVER_CALLBACK_URL || 'http://localhost:3000/auth/naver/callback';
+        if (!process.env.NAVER_CLIENT_ID || !process.env.NAVER_CLIENT_SECRET) {
+            throw new Error('NAVER_CLIENT_ID 또는 NAVER_CLIENT_SECRET 환경 변수가 설정되지 않았습니다.');
+        }
+
+        if (!process.env.NAVER_CALLBACK_URL) {
+            throw new Error('NAVER_CALLBACK_URL 환경 변수가 설정되지 않았습니다.');
+        }
+
+        const redirectURI = process.env.NAVER_CALLBACK_URL;
         const tokenResponse = await fetch('https://nid.naver.com/oauth2.0/token', {
             method: 'POST',
             headers: {
@@ -583,8 +591,8 @@ userController.naverLogin = async (req, res) => {
             },
             body: new URLSearchParams({
                 grant_type: 'authorization_code',
-                client_id: process.env.NAVER_CLIENT_ID || 'xgrVE4stsM0zDg17E7eU',
-                client_secret: process.env.NAVER_CLIENT_SECRET || 'IwpOF9AOUK',
+                client_id: process.env.NAVER_CLIENT_ID,
+                client_secret: process.env.NAVER_CLIENT_SECRET,
                 code: code,
                 state: state,
                 redirect_uri: redirectURI
@@ -606,8 +614,8 @@ userController.naverLogin = async (req, res) => {
         const profileResponse = await fetch('https://openapi.naver.com/v1/nid/me', {
             headers: {
                 'Authorization': `Bearer ${access_token}`,
-                'X-Naver-Client-Id': process.env.NAVER_CLIENT_ID || 'xgrVE4stsM0zDg17E7eU',
-                'X-Naver-Client-Secret': process.env.NAVER_CLIENT_SECRET || 'IwpOF9AOUK'
+                'X-Naver-Client-Id': process.env.NAVER_CLIENT_ID,
+                'X-Naver-Client-Secret': process.env.NAVER_CLIENT_SECRET
             }
         });
 
