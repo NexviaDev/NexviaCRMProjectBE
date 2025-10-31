@@ -38,7 +38,9 @@ const corsOptions = {
       'https://nexvia.netlify.app',
       'https://app.nexvia2.co.kr',
       'https://nexvia2.co.kr',
-      'https://www.nexvia2.co.kr'
+      'https://www.nexvia2.co.kr',
+      'https://nexvia.co.kr',
+      'https://www.nexvia.co.kr'
     ];
     
     // origin이 없거나 허용 목록에 있으면 허용

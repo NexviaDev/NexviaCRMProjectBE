@@ -568,7 +568,7 @@ userController.googleOAuth = async (req, res) => {
 // 네이버 OAuth 로그인
 userController.naverLogin = async (req, res) => {
     try {
-        const { code, state } = req.body;
+        const { code, state, redirectUri: clientRedirectUri } = req.body;
 
         if (!code || !state) {
             return res.status(400).json({ status: 'fail', message: '필수 인증 정보가 누락되었습니다.' });
@@ -579,11 +579,11 @@ userController.naverLogin = async (req, res) => {
             throw new Error('NAVER_CLIENT_ID 또는 NAVER_CLIENT_SECRET 환경 변수가 설정되지 않았습니다.');
         }
 
-        if (!process.env.NAVER_CALLBACK_URL) {
-            throw new Error('NAVER_CALLBACK_URL 환경 변수가 설정되지 않았습니다.');
+        // 프론트에서 전달된 redirectUri가 있으면 우선 사용, 없으면 환경변수 사용
+        const redirectURI = clientRedirectUri || process.env.NAVER_CALLBACK_URL;
+        if (!redirectURI) {
+            throw new Error('NAVER_CALLBACK_URL 또는 client redirectUri가 필요합니다.');
         }
-
-        const redirectURI = process.env.NAVER_CALLBACK_URL;
         const tokenResponse = await fetch('https://nid.naver.com/oauth2.0/token', {
             method: 'POST',
             headers: {
